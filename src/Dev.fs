@@ -14,7 +14,7 @@ importSideEffects "./styles/global.scss"
 
 let App() =
         MockBlockDock [
-            (Block "entityId-test")
+            (Block {| entityId = "entityId-test"; name= "Test" |})
         ]
 
 

@@ -5,11 +5,14 @@
     <ItemGroup>
         <None Include="index.html" />
         <Compile Include="bp/Core.fs" />
-        <Compile Include="Table.fs" />
+        <Compile Include="Table/Parsec.fs" />
+        <Compile Include="Table/Parser.fs" />
+        <Compile Include="Table/Evaluator.fs" />
+        <Compile Include="Table/Table.fs" />
         <Compile Include="Block.fs" />
         <Compile Include="Extensions.fs" />
         <Compile Include="Components.fs" />
-        <Compile Include="Main.fs" />
+        <Compile Include="Dev.fs" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Feliz" Version="1.57.0" />
