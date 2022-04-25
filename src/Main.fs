@@ -5,7 +5,7 @@ open App
 open Browser.Dom
 open Fable.Core.JsInterop
 open Fable.React
-open App
+open Block
 
 let MockBlockDock = ofImport "MockBlockDock" "mock-block-dock" [] 
 
@@ -14,7 +14,7 @@ importSideEffects "./styles/global.scss"
 
 let App() =
         MockBlockDock [
-            (App "entityId-test")
+            (Block "entityId-test")
         ]
 
 
