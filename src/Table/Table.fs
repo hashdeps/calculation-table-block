@@ -131,7 +131,7 @@ let renderCell trigger pos state =
 
 let view state trigger =
     let empty = Html.td []
-    let header (htext: string) = Html.th [ prop.text (htext) ]
+    let header (htext: string) = Html.th [ prop.className stylesheet.["header"]; prop.text (htext) ]
 
     let headers =
         state.Cols |> List.map (string >> header)

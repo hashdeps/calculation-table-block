@@ -1,17 +1,30 @@
-@import "~bulma";
+@import "~bulma/sass/utilities/_all.sass";
+@import "~bulma/sass/elements/table.sass";
+
 
 .table {
   border-spacing: 0px;
-  border-bottom: 1px solid #e0e0e0;
-  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0 !important;
+  border-right: 1px solid #e0e0e0 !important;
   overflow: scroll;
 }
 
-.cell {
-  width: 50px;
-  border-left: 1px solid #e0e0e0;
-  border-top: 1px solid #e0e0e0;
+.header {
+  width: 1.75em;
+  height: 1.25em;
+  text-align: center !important;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell {
+  width: 1.75em;
+  height: 1.25em !important;
+
+  border-left: 1px solid #e0e0e0 !important;
+  overflow: hidden;
+  padding: .5em 0 !important;
+  text-align: center;
   text-overflow: ellipsis;
 }
 
@@ -21,7 +34,8 @@
 
 .input {
   padding:0;
+  height: 1.25em !important;
+
   width: calc(100% - 5px);
-  height: 22px;
   margin: 0px;
 }

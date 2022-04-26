@@ -9,7 +9,9 @@ type ParserSetter<'T, 'R> =
 
 /// Ignore the result of the parser
 let ignore (Parser p) = Parser(fun input ->
-  p input |> Option.map (fun (i, r) -> i, ()))
+  p input |> Option.map (fun (i, _r) -> i, ()))
+
+let pzero = Parser (fun _ -> None)
 
 /// Creates a delayed parser whose actual parser is set later
 let slot () =
@@ -38,6 +40,9 @@ let (<|>) (Parser p1) (Parser p2) = Parser(fun input ->
   | Some(input, res) -> Some(input, res)
   | _ -> p2 input)
 
+let anyOf ps = 
+  List.fold (fun p pc -> p <|> pc) pzero (List.ofSeq ps)
+
 /// Run two parsers in sequence and return the result as a tuple
 let (<*>) (Parser p1) (Parser p2) = Parser(fun input ->
   match p1 input with
@@ -50,6 +55,8 @@ let (<*>) (Parser p1) (Parser p2) = Parser(fun input ->
 /// Transforms the result of the parser using the specified function
 let map f (Parser p) = Parser(fun input ->
   p input |> Option.map (fun (input, res) -> input, f res))
+
+let (|>>) a b = map b a
 
 /// Run two parsers in sequence and return the result of the second one
 let (<*>>) p1 p2 = p1 <*> p2 |> map snd
@@ -102,6 +109,8 @@ let oneOrMore p =
 
 
 let anySpace = zeroOrMore (pred (fun t -> t = ' '))
+
+let spaces = zeroOrMore (pred (fun t -> t = ' ' || t = '\t' || t = '\n' || t = '\r'))
 
 let char tok = pred (fun t -> t = tok)
 
