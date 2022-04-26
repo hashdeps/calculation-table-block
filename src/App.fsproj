@@ -11,7 +11,6 @@
         <Compile Include="Table/Evaluator.fs" />
         <Compile Include="Table/Table.fs" />
         <Compile Include="Block.fs" />
-        <Compile Include="Components.fs" />
         <Compile Include="Dev.fs" />
     </ItemGroup>
     <ItemGroup>

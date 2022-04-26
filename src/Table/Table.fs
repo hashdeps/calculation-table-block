@@ -32,11 +32,11 @@ type Direction =
     | Left
     | Right
 
-let KeyDirection: Map<float, Direction> =
-    Map.ofList [ (37.0, Left)
-                 (38.0, Up)
-                 (39.0, Right)
-                 (40.0, Down) ]
+let KeyDirection: Map<string, Direction> =
+    Map.ofList [ ("ArrowLeft", Left)
+                 ("ArrowUp", Up)
+                 ("ArrowRight", Right)
+                 ("ArrowDown", Down) ]
 
 // ----------------------------------------------------------------------------
 // EVENT HANDLING
@@ -59,7 +59,7 @@ let update msg state =
 // RENDERING
 // ----------------------------------------------------------------------------
 
-let getDirection (ke: Browser.Types.KeyboardEvent) : Option<Direction> = Map.tryFind ke.keyCode KeyDirection
+let getDirection (ke: Browser.Types.KeyboardEvent) : Option<Direction> = Map.tryFind ke.key KeyDirection
 
 let getPosition ((col, row): Position) (direction: Direction) : Position =
     match direction with
@@ -90,9 +90,10 @@ let getKeyPressEvent state trigger =
             | MoveTo position -> trigger (StartEdit(position))
 
 let renderEditor (trigger: Event -> unit) pos state (value: string) =
-    Html.td [ prop.className (stylesheet.["selected"])
+    Html.td [ prop.className stylesheet.["selected"]
               prop.children (
-                  Html.input [ prop.autoFocus (true)
+                  Html.input [ prop.className stylesheet.["input"]
+                               prop.autoFocus (true)
                                prop.onKeyDown (getKeyPressEvent state trigger)
                                prop.onInput
                                    (fun e ->
@@ -107,7 +108,8 @@ let renderEditor (trigger: Event -> unit) pos state (value: string) =
               ) ]
 
 let renderView trigger pos (value: option<_>) =
-    Html.td [ prop.onClick //prop.style (if value.IsNone then [("background", "#ffb0b0")] else [("background", "white")])
+    Html.td [ prop.className stylesheet.["cell"]
+              prop.onClick //prop.style (if value.IsNone then [("background", "#ffb0b0")] else [("background", "white")])
                   (fun _ -> trigger (StartEdit(pos)))
               prop.children (Html.text ((Option.defaultValue "#ERR" value))) ]
 
@@ -149,8 +151,14 @@ let view state trigger =
         state.Rows
         |> List.map (fun r -> Html.tr (cells r))
 
-    Html.table [ Html.thead [ Html.tr headers ]
-                 Html.tbody rows ]
+    Html.table [ prop.className stylesheet.["table"]
+                 prop.children (
+                    React.fragment [
+                        Html.thead [ Html.tr headers ]
+                        Html.tbody rows
+
+                    ]
+                 )]
 
 let initial () =
     { Cols = [ 'A' .. 'K' ]
