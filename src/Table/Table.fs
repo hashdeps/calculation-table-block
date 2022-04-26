@@ -6,6 +6,8 @@ open Elmish
 open Parser
 open Evaluator
 
+let private stylesheet = Stylesheet.load "../styles/table.module.scss"
+
 // ----------------------------------------------------------------------------
 // DOMAIN MODEL
 // ----------------------------------------------------------------------------
@@ -88,7 +90,7 @@ let getKeyPressEvent state trigger =
             | MoveTo position -> trigger (StartEdit(position))
 
 let renderEditor (trigger: Event -> unit) pos state (value: string) =
-    Html.td [ prop.className "selected"
+    Html.td [ prop.className (stylesheet.["selected"])
               prop.children (
                   Html.input [ prop.autoFocus (true)
                                prop.onKeyDown (getKeyPressEvent state trigger)

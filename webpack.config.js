@@ -9,6 +9,11 @@ const WebpackAssetsManifest = require("webpack-assets-manifest");
 const Dotenv = require("dotenv-webpack");
 const { patchGracefulFileSystem } = require("./webpack.common.js");
 const { StatsPlugin } = require("./webpack-block-metadata-plugin.cjs");
+
+const packageJsonPath = path.resolve(process.cwd(), "./package.json");
+// eslint-disable-next-line import/no-dynamic-require
+const { peerDependencies } = require(packageJsonPath);
+
 patchGracefulFileSystem();
 
 // If we're running the webpack-dev-server, assume we're in development mode
@@ -71,10 +76,15 @@ module.exports = {
     libraryTarget: isProduction ? "commonjs" : undefined,
     path: resolve(CONFIG.outputDir),
     filename: isProduction ? "main.[contenthash].js" : "[name].js",
+    clean: true,
   },
+  externals: Object.fromEntries(
+    Object.keys(peerDependencies).map((key) => [key, key])
+  ),
   mode: isProduction ? "production" : "development",
   devtool: isProduction ? undefined : "eval-source-map",
   optimization: {
+    usedExports: true,
     moduleIds: "named",
   },
   plugins: isProduction
@@ -143,20 +153,26 @@ module.exports = {
         exclude: /node_modules/,
         use: {
           loader: "babel-loader",
-          options: CONFIG.babel,
+          options: require("./babelrc.json"),
         },
       },
       {
-        test: /\.(sass|scss|css)$/,
+        test: /\.css$/i,
         use: [
-          isProduction ? MiniCssExtractPlugin.loader : "style-loader",
+          "style-loader",
           {
             loader: "css-loader",
           },
+        ],
+      },
+      {
+        test: /\.s[ac]ss$/i,
+        use: [
+          "style-loader",
           {
-            loader: "sass-loader",
-            options: { implementation: require("sass") },
+            loader: "css-loader",
           },
+          "sass-loader",
         ],
       },
       {
