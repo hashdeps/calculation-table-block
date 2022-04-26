@@ -78,9 +78,9 @@ module.exports = {
     filename: isProduction ? "main.[contenthash].js" : "[name].js",
     clean: true,
   },
-  externals: Object.fromEntries(
-    Object.keys(peerDependencies).map((key) => [key, key])
-  ),
+  externals: isProduction
+    ? Object.fromEntries(Object.keys(peerDependencies).map((key) => [key, key]))
+    : undefined,
   mode: isProduction ? "production" : "development",
   devtool: isProduction ? undefined : "eval-source-map",
   optimization: {
