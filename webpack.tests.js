@@ -111,12 +111,12 @@ module.exports = (env, argv) => {
     },
     // Configuration for webpack-dev-server
     devServer: {
-      publicPath: "/",
-      contentBase: resolve(CONFIG.assetsDir),
+      static: {
+        directory: resolve(CONFIG.assetsDir),
+      },
       port: CONFIG.devServerPort,
       proxy: CONFIG.devServerProxy,
       hot: true,
-      inline: true,
     },
     // - fable-loader: transforms F# into JS
     // - babel-loader: transforms JS to old syntax (compatible with old browsers)
