@@ -8,22 +8,27 @@ open Parsec
 
 type Position = char * int
 
-type Operator = Plus | Minus | Multiply | Divide | Exponent 
+type Operator =
+    | Plus
+    | Minus
+    | Multiply
+    | Divide
+    | Exponent
 
 
 type Expr =
-  | Reference of Position
-  | Number of int
-  | Unary of Expr * Operator
-  | Binary of Expr * Operator * Expr
+    | Reference of Position
+    | Number of int
+    | Unary of Expr * Operator
+    | Binary of Expr * Operator * Expr
 
-let operatorMapping = 
-  function
-  | Plus     -> '+'
-  | Minus    -> '-'
-  | Multiply -> '*'
-  | Divide   -> '/'
-  | Exponent -> '^'
+let operatorMapping =
+    function
+    | Plus -> '+'
+    | Minus -> '-'
+    | Multiply -> '*'
+    | Divide -> '/'
+    | Exponent -> '^'
 
 // ----------------------------------------------------------------------------
 // Extra combinaotrs
@@ -34,67 +39,82 @@ let betweenSame x p = between x x p
 let wsIgnore x = betweenSame spaces x
 
 
-let operator: Parser<Operator, unit>
-             =  charReturn '+' Operator.Plus 
-            <|> charReturn '-' Operator.Minus
-            <|> charReturn '*' Operator.Multiply
-            <|> charReturn '/' Operator.Divide
+let operator: Parser<Operator, unit> =
+    charReturn '+' Operator.Plus
+    <|> charReturn '-' Operator.Minus
+    <|> charReturn '*' Operator.Multiply
+    <|> charReturn '/' Operator.Divide
 
-let reference = letter .>>. pint32 |>> Reference
+let reference =
+    letter .>>. pint32 |>> Reference
+
 let number = pint32 |>> Number
 
 
 // ----------------------------------------------------------------------------
 // Operator precedence parser
 // ----------------------------------------------------------------------------
-type Associativity = Prefix
-                   | Postfix
-                   | BinaryLeft
-                   | BinaryRight
+type Associativity =
+    | Prefix
+    | Postfix
+    | BinaryLeft
+    | BinaryRight
 
-let parsePrefix operatorParser nextParser = 
-  let parser, parserSetter = createParserForwardedToRef ()
-  
-  parserSetter.Value <- (operatorParser .>>. parser |>> (fun (op, value) -> Unary (value, op))) <|> nextParser  
+let parsePrefix operatorParser nextParser =
+    let parser, parserSetter =
+        createParserForwardedToRef ()
 
-  parser
+    parserSetter.Value <-
+        (operatorParser .>>. parser
+         |>> (fun (op, value) -> Unary(value, op)))
+        <|> nextParser
+
+    parser
 
 
 let parsePostfix (operatorParser: Parser<Operator, 'a>) nextParser =
-  nextParser .>>. (many operatorParser) 
-    |>> (fun (x, suffixes) -> 
-      List.fold (fun acc x -> Unary (acc, x)) x suffixes)
+    nextParser .>>. (many operatorParser)
+    |>> (fun (x, suffixes) -> List.fold (fun acc x -> Unary(acc, x)) x suffixes)
 
-let parseBinaryLeft operatorParser nextParser = 
-  let parser, parserSetter = createParserForwardedToRef ()
-  
-  parserSetter.Value <- nextParser .>>. (many (operatorParser .>>. nextParser)) |>> (fun (first, rest) -> 
-    List.fold (fun l (op, r) -> Binary (l, op, r)) first rest)
+let parseBinaryLeft operatorParser nextParser =
+    let parser, parserSetter =
+        createParserForwardedToRef ()
 
-  parser
+    parserSetter.Value <-
+        nextParser
+        .>>. (many (operatorParser .>>. nextParser))
+        |>> (fun (first, rest) -> List.fold (fun l (op, r) -> Binary(l, op, r)) first rest)
 
-let parseBinaryRight operatorParser nextParser = 
-  let parser, parserSetter = createParserForwardedToRef ()
+    parser
 
-  parserSetter.Value <- nextParser >>= (fun p -> 
-    (operatorParser .>>. (preturn p) .>>. parser) |>> (fun ((op, l), r) -> Binary (l, op, r) ) 
-    <|> (preturn p)) 
+let parseBinaryRight operatorParser nextParser =
+    let parser, parserSetter =
+        createParserForwardedToRef ()
 
-  parser
+    parserSetter.Value <-
+        nextParser
+        >>= (fun p ->
+            (operatorParser .>>. (preturn p) .>>. parser)
+            |>> (fun ((op, l), r) -> Binary(l, op, r))
+            <|> (preturn p))
 
-
-let evaluateAssociation (assoc: Associativity)  operatorParser nextParser = 
-  let operatorParser = List.map (fun op -> wsIgnore (charReturn (operatorMapping op) op)) operatorParser |> choice
-
-  match assoc with
-  | Prefix -> parsePrefix operatorParser nextParser
-  | Postfix -> parsePostfix operatorParser nextParser
-  | BinaryLeft -> parseBinaryLeft operatorParser nextParser 
-  | BinaryRight -> parseBinaryRight operatorParser nextParser
+    parser
 
 
-let tableParser termParser operators = 
-  List.fold (fun acc (assoc, ops) -> evaluateAssociation assoc ops acc) termParser operators
+let evaluateAssociation (assoc: Associativity) operatorParser nextParser =
+    let operatorParser =
+        List.map (fun op -> wsIgnore (charReturn (operatorMapping op) op)) operatorParser
+        |> choice
+
+    match assoc with
+    | Prefix -> parsePrefix operatorParser nextParser
+    | Postfix -> parsePostfix operatorParser nextParser
+    | BinaryLeft -> parseBinaryLeft operatorParser nextParser
+    | BinaryRight -> parseBinaryRight operatorParser nextParser
+
+
+let tableParser termParser operators =
+    List.fold (fun acc (assoc, ops) -> evaluateAssociation assoc ops acc) termParser operators
 
 
 // ----------------------------------------------------------------------------
@@ -102,16 +122,20 @@ let tableParser termParser operators =
 // ----------------------------------------------------------------------------
 
 // Precedence table of operators
-let operators = [
-  (Prefix,      [Minus])
-  // (Postfix,     [Factorial])
-  (BinaryRight, [Exponent])
-  (BinaryLeft,  [Multiply ; Divide])
-  (BinaryLeft,  [Plus     ; Minus])
-]
+let operators =
+    [ (Prefix, [ Minus ])
+      // (Postfix,     [Factorial])
+      (BinaryRight, [ Exponent ])
+      (BinaryLeft, [ Multiply; Divide ])
+      (BinaryLeft, [ Plus; Minus ]) ]
 
-let term, termSetter = createParserForwardedToRef ()
-let paren = wsIgnore <| pchar '(' >>.  wsIgnore term .>> pchar ')'
+let term, termSetter =
+    createParserForwardedToRef ()
+
+let paren =
+    wsIgnore <| pchar '(' >>. wsIgnore term
+    .>> pchar ')'
+
 let termAux = number <|> reference <|> paren
 let ops = tableParser termAux operators
 

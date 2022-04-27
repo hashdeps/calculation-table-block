@@ -6,16 +6,16 @@ open Fable.Core.JsInterop
 open Fable.React
 open Block
 
-let MockBlockDock = ofImport "MockBlockDock" "mock-block-dock" [] 
+let MockBlockDock =
+    ofImport "MockBlockDock" "mock-block-dock" []
 
 let node = document.getElementById "app"
 
-let App() =
-        MockBlockDock [
-            (Block {| entityId = "entityId-test"; name= "Test" |})
-        ]
+let App () =
+    MockBlockDock [
+        (Block
+            {| entityId = "entityId-test"
+               name = "Test" |})
+    ]
 
-ReactDOM.render(
-    App(),
-    node
-)
+ReactDOM.render (App(), node)

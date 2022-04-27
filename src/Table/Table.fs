@@ -1,4 +1,5 @@
 module Table.Table
+
 open Feliz
 open Feliz.UseElmish
 open Elmish
@@ -6,7 +7,8 @@ open Elmish
 open Parser
 open Evaluator
 
-let private stylesheet = Stylesheet.load "../styles/table.module.scss"
+let private stylesheet =
+    Stylesheet.load "../styles/table.module.scss"
 
 // ----------------------------------------------------------------------------
 // DOMAIN MODEL
@@ -33,10 +35,12 @@ type Direction =
     | Right
 
 let KeyDirection: Map<string, Direction> =
-    Map.ofList [ ("ArrowLeft", Left)
-                 ("ArrowUp", Up)
-                 ("ArrowRight", Right)
-                 ("ArrowDown", Down) ]
+    Map.ofList [
+        ("ArrowLeft", Left)
+        ("ArrowUp", Up)
+        ("ArrowRight", Right)
+        ("ArrowDown", Down)
+    ]
 
 // ----------------------------------------------------------------------------
 // EVENT HANDLING
@@ -72,7 +76,8 @@ let getMovement (state: State) (direction: Direction) : Movement =
     match state.Active with
     | None -> Invalid
     | (Some position) ->
-        let (col, row) = getPosition position direction
+        let (col, row) =
+            getPosition position direction
 
         if List.contains col state.Cols
            && List.contains row state.Rows then
@@ -90,32 +95,38 @@ let getKeyPressEvent state trigger =
             | MoveTo position -> trigger (StartEdit(position))
 
 let renderEditor (trigger: Event -> unit) pos state (value: string) =
-    Html.td [ prop.className stylesheet.["selected"]
-              prop.children (
-                  Html.input [ prop.className stylesheet.["input"]
-                               prop.autoFocus (true)
-                               prop.onKeyDown (getKeyPressEvent state trigger)
-                               prop.onInput
-                                   (fun e ->
-                                       trigger (
-                                           UpdateValue(
-                                               pos,
-                                               (e.target :?> Browser.Types.HTMLInputElement)
-                                                   .value
-                                           )
-                                       ))
-                               prop.value (value) ]
-              ) ]
+    Html.td [
+        prop.className stylesheet.["selected"]
+        prop.children (
+            Html.input [
+                prop.className stylesheet.["input"]
+                prop.autoFocus (true)
+                prop.onKeyDown (getKeyPressEvent state trigger)
+                prop.onInput (fun e ->
+                    trigger (
+                        UpdateValue(
+                            pos,
+                            (e.target :?> Browser.Types.HTMLInputElement)
+                                .value
+                        )
+                    ))
+                prop.value (value)
+            ]
+        )
+    ]
 
 let renderView trigger pos value =
-    let display = 
+    let display =
         match value with
         | Ok x -> x
         | _ -> "#ERR"
-    Html.td [ prop.className stylesheet.["cell"]
-              prop.onClick //prop.style (if value.IsNone then [("background", "#ffb0b0")] else [("background", "white")])
-                  (fun _ -> trigger (StartEdit(pos)))
-              prop.children (Html.text (display)) ]
+
+    Html.td [
+        prop.className stylesheet.["cell"]
+        prop.onClick (fun _ -> //prop.style (if value.IsNone then [("background", "#ffb0b0")] else [("background", "white")])
+            trigger (StartEdit(pos)))
+        prop.children (Html.text (display))
+    ]
 
 let renderCell trigger pos state =
     let value = Map.tryFind pos state.Cells
@@ -135,7 +146,12 @@ let renderCell trigger pos state =
 
 let view state trigger =
     let empty = Html.td []
-    let header (htext: string) = Html.th [ prop.className stylesheet.["header"]; prop.text (htext) ]
+
+    let header (htext: string) =
+        Html.th [
+            prop.className stylesheet.["header"]
+            prop.text (htext)
+        ]
 
     let headers =
         state.Cols |> List.map (string >> header)
@@ -155,24 +171,27 @@ let view state trigger =
         state.Rows
         |> List.map (fun r -> Html.tr (cells r))
 
-    Html.table [ prop.className stylesheet.["table"]
-                 prop.children (
-                    React.fragment [
-                        Html.thead [ Html.tr headers ]
-                        Html.tbody rows
+    Html.table [
+        prop.className stylesheet.["table"]
+        prop.children (
+            React.fragment [
+                Html.thead [ Html.tr headers ]
+                Html.tbody rows
 
-                    ]
-                 )]
+                ]
+        )
+    ]
 
 let initial () =
     { Cols = [ 'A' .. 'K' ]
-      Rows = [ 1 .. 15 ]
+      Rows = [ 1..15 ]
       Active = None
       Cells = Map.empty },
     []
 
 [<ReactComponent>]
 let Spreadsheet () =
-    let state, dispatch = React.useElmish (initial, update, [||])
+    let state, dispatch =
+        React.useElmish (initial, update, [||])
 
     view state dispatch
