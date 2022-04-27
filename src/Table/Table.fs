@@ -2,13 +2,17 @@ module Table.Table
 
 open Feliz
 open Feliz.UseElmish
-open Elmish
 
 open Parser
 open Evaluator
 
 let private stylesheet =
     Stylesheet.load "../styles/table.module.scss"
+
+let isError =
+    function
+    | Error _ -> true
+    | _ -> false
 
 // ----------------------------------------------------------------------------
 // DOMAIN MODEL
@@ -122,9 +126,12 @@ let renderView trigger pos value =
         | _ -> "#ERR"
 
     Html.td [
-        prop.className stylesheet.["cell"]
-        prop.onClick (fun _ -> //prop.style (if value.IsNone then [("background", "#ffb0b0")] else [("background", "white")])
-            trigger (StartEdit(pos)))
+        prop.className [
+            stylesheet.["cell"]
+            if isError value then
+                stylesheet.["error"]
+        ]
+        prop.onClick (fun _ -> trigger (StartEdit(pos)))
         prop.children (Html.text (display))
     ]
 
