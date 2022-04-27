@@ -1,70 +1,91 @@
 module BP.Core
+
 open System
 open Fable.Core
 open Fable.Core.JS
 
-type UnknownRecord =
-    Map<string, obj>
+type UnknownRecord = Map<string, obj>
 
-type [<AllowNullLiteral>] BlockProtocolEntity =
+[<AllowNullLiteral>]
+type BlockProtocolEntity =
     abstract accountId: string option with get, set
     abstract entityId: string with get, set
     abstract entityTypeId: string option with get, set
-    [<Emit "$0[$1]{{=$2}}">] abstract Item: key: string -> obj with get, set
+
+    [<Emit "$0[$1]{{=$2}}">]
+    abstract Item: key: string -> obj with get, set
 
 
-type [<AllowNullLiteral>] BlockProtocolEntityType =
+[<AllowNullLiteral>]
+type BlockProtocolEntityType =
     abstract accountId: string option with get, set
     abstract entityTypeId: string with get, set
     abstract ``$id``: string with get, set
     abstract ``$schema``: string with get, set
     abstract title: string with get, set
     abstract ``type``: string with get, set
-    [<Emit "$0[$1]{{=$2}}">] abstract Item: key: string -> obj with get, set
+
+    [<Emit "$0[$1]{{=$2}}">]
+    abstract Item: key: string -> obj with get, set
 
 
-type [<AllowNullLiteral>] BlockProtocolCreateEntitiesAction =
+[<AllowNullLiteral>]
+type BlockProtocolCreateEntitiesAction =
     abstract entityTypeId: string with get, set
     abstract entityTypeVersionId: string option with get, set
     abstract data: UnknownRecord with get, set
     abstract accountId: string option with get, set
-    // abstract links: ResizeArray<DistributedOmit<BlockProtocolCreateLinksAction, BlockProtocolCreateEntitiesActionLinksDistributedOmitArrayDistributedOmit>> option with get, set
+// abstract links: ResizeArray<DistributedOmit<BlockProtocolCreateLinksAction, BlockProtocolCreateEntitiesActionLinksDistributedOmitArrayDistributedOmit>> option with get, set
 
 
-type [<AllowNullLiteral>] BlockProtocolGetEntitiesAction =
+[<AllowNullLiteral>]
+type BlockProtocolGetEntitiesAction =
     abstract accountId: string option with get, set
     abstract entityId: string with get, set
     abstract entityTypeId: string option with get, set
 
 
-type [<AllowNullLiteral>] BlockProtocolUpdateEntitiesAction =
+[<AllowNullLiteral>]
+type BlockProtocolUpdateEntitiesAction =
     abstract entityTypeId: string option with get, set
     abstract entityTypeVersionId: string option with get, set
     abstract entityId: string with get, set
     abstract accountId: string option with get, set
     abstract data: UnknownRecord with get, set
 
-type [<AllowNullLiteral>] BlockProtocolDeleteEntitiesAction =
+[<AllowNullLiteral>]
+type BlockProtocolDeleteEntitiesAction =
     abstract accountId: string option with get, set
     abstract entityId: string with get, set
     abstract entityTypeId: string option with get, set
 
-type [<AllowNullLiteral>] BlockProtocolAggregateEntitiesResult<'T> =
+[<AllowNullLiteral>]
+type BlockProtocolAggregateEntitiesResult<'T> =
     abstract results: ResizeArray<'T> with get, set
     abstract operation: obj with get, set
 
-  
-type [<AllowNullLiteral>] BlockProtocolCreateEntitiesFunction =
-    [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolCreateEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
 
-type [<AllowNullLiteral>] BlockProtocolGetEntitiesFunction =
-    [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolGetEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
+[<AllowNullLiteral>]
+type BlockProtocolCreateEntitiesFunction =
+    [<Emit "$0($1...)">]
+    abstract Invoke:
+        actions: ResizeArray<BlockProtocolCreateEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
 
-type [<AllowNullLiteral>] BlockProtocolUpdateEntitiesFunction =
-    [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolUpdateEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
+[<AllowNullLiteral>]
+type BlockProtocolGetEntitiesFunction =
+    [<Emit "$0($1...)">]
+    abstract Invoke: actions: ResizeArray<BlockProtocolGetEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
 
-type [<AllowNullLiteral>] BlockProtocolDeleteEntitiesFunction =
-    [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolDeleteEntitiesAction> -> Promise<ResizeArray<bool>>
+[<AllowNullLiteral>]
+type BlockProtocolUpdateEntitiesFunction =
+    [<Emit "$0($1...)">]
+    abstract Invoke:
+        actions: ResizeArray<BlockProtocolUpdateEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
+
+[<AllowNullLiteral>]
+type BlockProtocolDeleteEntitiesFunction =
+    [<Emit "$0($1...)">]
+    abstract Invoke: actions: ResizeArray<BlockProtocolDeleteEntitiesAction> -> Promise<ResizeArray<bool>>
 
 // type [<AllowNullLiteral>] BlockProtocolAggregateEntitiesFunction =
 //     [<Emit "$0($1...)">] abstract Invoke: payload: BlockProtocolAggregateEntitiesPayload -> Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>>
@@ -98,36 +119,37 @@ type [<AllowNullLiteral>] BlockProtocolDeleteEntitiesFunction =
 // type [<AllowNullLiteral>] BlockProtocolDeleteEntityTypesFunction =
 //     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolDeleteEntityTypesAction> -> Promise<ResizeArray<bool>>
 
-type BlockProtocolFunction =
-    obj
+type BlockProtocolFunction = obj
 
-type [<AllowNullLiteral>] BlockProtocolFunctions =
+[<AllowNullLiteral>]
+type BlockProtocolFunctions =
     abstract createEntities: BlockProtocolCreateEntitiesFunction option with get, set
     abstract getEntities: BlockProtocolGetEntitiesFunction option with get, set
     abstract deleteEntities: BlockProtocolDeleteEntitiesFunction option with get, set
     abstract updateEntities: BlockProtocolUpdateEntitiesFunction option with get, set
-    // abstract aggregateEntities: BlockProtocolAggregateEntitiesFunction option with get, set
-    // abstract aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction option with get, set
-    // abstract createEntityTypes: BlockProtocolCreateEntityTypesFunction option with get, set
-    // abstract getEntityTypes: BlockProtocolGetEntityTypesFunction option with get, set
-    // abstract updateEntityTypes: BlockProtocolUpdateEntityTypesFunction option with get, set
-    // abstract deleteEntityTypes: BlockProtocolDeleteEntityTypesFunction option with get, set
-    // abstract getLinks: BlockProtocolGetLinksFunction option with get, set
-    // abstract createLinks: BlockProtocolCreateLinksFunction option with get, set
-    // abstract deleteLinks: BlockProtocolDeleteLinksFunction option with get, set
-    // abstract updateLinks: BlockProtocolUpdateLinksFunction option with get, set
-    // abstract uploadFile: BlockProtocolUploadFileFunction option with get, set
+// abstract aggregateEntities: BlockProtocolAggregateEntitiesFunction option with get, set
+// abstract aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction option with get, set
+// abstract createEntityTypes: BlockProtocolCreateEntityTypesFunction option with get, set
+// abstract getEntityTypes: BlockProtocolGetEntityTypesFunction option with get, set
+// abstract updateEntityTypes: BlockProtocolUpdateEntityTypesFunction option with get, set
+// abstract deleteEntityTypes: BlockProtocolDeleteEntityTypesFunction option with get, set
+// abstract getLinks: BlockProtocolGetLinksFunction option with get, set
+// abstract createLinks: BlockProtocolCreateLinksFunction option with get, set
+// abstract deleteLinks: BlockProtocolDeleteLinksFunction option with get, set
+// abstract updateLinks: BlockProtocolUpdateLinksFunction option with get, set
+// abstract uploadFile: BlockProtocolUploadFileFunction option with get, set
 
 
-type [<AllowNullLiteral>] BlockProtocolProps =
+[<AllowNullLiteral>]
+type BlockProtocolProps =
     interface
-      inherit BlockProtocolFunctions
+        inherit BlockProtocolFunctions
 
-      abstract accountId: string option with get
-      abstract entityId: string with get
-      abstract entityTypeId: string option with get
-      abstract entityTypeVersionId: string option with get
-      abstract entityTypes: ResizeArray<BlockProtocolEntityType> option with get
-      // missing links and linkedaggregations
+        abstract accountId: string option
+        abstract entityId: string
+        abstract entityTypeId: string option
+        abstract entityTypeVersionId: string option
+        abstract entityTypes: ResizeArray<BlockProtocolEntityType> option
+        // missing links and linkedaggregations
+
     end
-
