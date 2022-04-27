@@ -57,7 +57,7 @@
     "http-server": "^14.1.0",
     "mini-css-extract-plugin": "^1.3.4",
     "mocha": "^8.2.1",
-    "mock-block-dock": "0.0.7",
+    "mock-block-dock": "0.0.8",
     "sass": "^1.32.4",
     "sass-loader": "^10.1.1",
     "source-map-loader": "^2.0.1",

@@ -3153,10 +3153,10 @@ mocha@^8.2.1:
     yargs-parser "20.2.4"
     yargs-unparser "2.0.0"
 
-mock-block-dock@0.0.7:
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.7.tgz#f8504c80fd1942b6aa6fbb441f6a89f93627f0de"
-  integrity sha512-iA+1KsRyW1LK2SVYkLlCZpNlUqjg4JZ32M38oFH3jX5LHAjlQjh5snDJQNQLxOUNL4dq2RXCUEsQSLp9guXAaA==
+mock-block-dock@0.0.8:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.8.tgz#fa96e216475633f208ea3a34a60755cdb1e72821"
+  integrity sha512-CBI83tj546pBgBU7X+ifkh751imPhq22eMNDipsnThGcsxU9MsNYxJwIRS33u8lJLD6ycB1apHSQgaLyJ61zHA==
   dependencies:
     blockprotocol "0.0.8"
     lodash "^4.17.21"
