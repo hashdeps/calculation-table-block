@@ -1,4 +1,5 @@
 module Table.Parser
+
 open Parsec
 
 // ----------------------------------------------------------------------------
@@ -7,8 +8,7 @@ open Parsec
 
 type Position = char * int
 
-
-type Operator = Add = '+' | Subtract = '-' | Multiply = '*' | Divide = '/' | Exponent = '^' | Factorial = '!' | Negate = '-'
+type Operator = Plus | Minus | Multiply | Divide | Exponent 
 
 
 type Expr =
@@ -17,75 +17,107 @@ type Expr =
   | Unary of Expr * Operator
   | Binary of Expr * Operator * Expr
 
+let operatorMapping = 
+  function
+  | Plus     -> '+'
+  | Minus    -> '-'
+  | Multiply -> '*'
+  | Divide   -> '/'
+  | Exponent -> '^'
+
 // ----------------------------------------------------------------------------
-// PARSER
+// Extra combinaotrs
 // ----------------------------------------------------------------------------
 
-let between l r p = (ignore l) <*>> p <<*> (ignore r)
+let between l r p = l >>. p .>> r
 let betweenSame x p = between x x p
-let wsIgnore x = betweenSame (ignore spaces) x
+let wsIgnore x = betweenSame spaces x
 
+
+let operator: Parser<Operator, unit>
+             =  charReturn '+' Operator.Plus 
+            <|> charReturn '-' Operator.Minus
+            <|> charReturn '*' Operator.Multiply
+            <|> charReturn '/' Operator.Divide
+
+let reference = letter .>>. pint32 |>> Reference
+let number = pint32 |>> Number
+
+
+// ----------------------------------------------------------------------------
+// Operator precedence parser
+// ----------------------------------------------------------------------------
 type Associativity = Prefix
                    | Postfix
                    | BinaryLeft
                    | BinaryRight
 
 let parsePrefix operatorParser nextParser = 
-  // Lazy parser that allows recursion
-  let parserSetter, parser = slot ()
-  let next = (operatorParser <*> parser |>> (fun (op, value) -> Unary (value, op))) <|> nextParser 
-
-  parserSetter.Set next 
+  let parser, parserSetter = createParserForwardedToRef ()
+  
+  parserSetter.Value <- (operatorParser .>>. parser |>> (fun (op, value) -> Unary (value, op))) <|> nextParser  
 
   parser
 
 
-let parsePostfix operatorParser nextParser = 
-  
-let parseBinaryLeft operatorParser nextParser = 0
-let parseBinaryRight operatorParser nextParser = 0
+let parsePostfix (operatorParser: Parser<Operator, 'a>) nextParser =
+  nextParser .>>. (many operatorParser) 
+    |>> (fun (x, suffixes) -> 
+      List.fold (fun acc x -> Unary (acc, x)) x suffixes)
 
-let evaluateAssociation (assoc: Associativity)  operatorParser = 
-  let operatorParser = List.map (fun p -> wsIgnore p) operatorParser |> anyOf
+let parseBinaryLeft operatorParser nextParser = 
+  let parser, parserSetter = createParserForwardedToRef ()
+  
+  parserSetter.Value <- nextParser .>>. (many (operatorParser .>>. nextParser)) |>> (fun (first, rest) -> 
+    List.fold (fun l (op, r) -> Binary (l, op, r)) first rest)
+
+  parser
+
+let parseBinaryRight operatorParser nextParser = 
+  let parser, parserSetter = createParserForwardedToRef ()
+
+  parserSetter.Value <- nextParser >>= (fun p -> 
+    (operatorParser .>>. (preturn p) .>>. parser) |>> (fun ((op, l), r) -> Binary (l, op, r) ) 
+    <|> (preturn p)) 
+
+  parser
+
+
+let evaluateAssociation (assoc: Associativity)  operatorParser nextParser = 
+  let operatorParser = List.map (fun op -> wsIgnore (charReturn (operatorMapping op) op)) operatorParser |> choice
 
   match assoc with
-  | Prefix -> parsePrefix operatorParser
-  | Postfix -> parsePostfix operatorParser
-  | BinaryLeft -> parseBinaryLeft operatorParser
-  | BinaryRight -> parseBinaryRight operatorParser
+  | Prefix -> parsePrefix operatorParser nextParser
+  | Postfix -> parsePostfix operatorParser nextParser
+  | BinaryLeft -> parseBinaryLeft operatorParser nextParser 
+  | BinaryRight -> parseBinaryRight operatorParser nextParser
+
+
+let tableParser termParser operators = 
+  List.fold (fun acc (assoc, ops) -> evaluateAssociation assoc ops acc) termParser operators
+
+
+// ----------------------------------------------------------------------------
+// Concrete parsers
+// ----------------------------------------------------------------------------
 
 // Precedence table of operators
 let operators = [
-  (Prefix,      [Operator.Negate])
-  (Postfix,     [Operator.Factorial])
-  (BinaryRight, [Operator.Exponent])
-  (BinaryLeft,  [Operator.Multiply ; Operator.Divide])
-  (BinaryLeft,  [Operator.Add      ; Operator.Subtract])
+  (Prefix,      [Minus])
+  // (Postfix,     [Factorial])
+  (BinaryRight, [Exponent])
+  (BinaryLeft,  [Multiply ; Divide])
+  (BinaryLeft,  [Plus     ; Minus])
 ]
 
+let term, termSetter = createParserForwardedToRef ()
+let paren = wsIgnore <| pchar '(' >>.  wsIgnore term .>> pchar ')'
+let termAux = number <|> reference <|> paren
+let ops = tableParser termAux operators
 
-// Basics: operators (+, -, *, /), cell reference (e.g. A10), number (e.g. 123)
+termSetter.Value <- ops
 
-let operator = char '+' <|> char '-' <|> char '*' <|> char '/'
-let reference = letter <*> integer |> map Reference
-let number = integer |> map Number
+let formula = wsIgnore (pchar '=') >>. term
+let equation = wsIgnore (formula <|> number)
 
-// Nested operator uses need to be parethesized, for example (1 + (3 * 4)).
-// <expr> is a binary operator without parentheses, number, reference or
-// nested brackets, while <term> is always bracketed or primitive. We need
-// to use `expr` recursively, which is handled via mutable slots.
-let exprSetter, expr = slot ()
-let brack = char '(' <*>> anySpace <*>> expr <<*> anySpace <<*> char ')'
-let term = number <|> reference <|> brack
-let binary = term <<*> anySpace <*> operator <<*> anySpace <*> term |> map (fun ((l,op), r) -> Binary(l, op, r))
-let exprAux = binary <|> term
-exprSetter.Set exprAux
-
-// Formula starts with `=` followed by expression
-// Equation you can write in a cell is either number or a formula
-let formula = char '=' <*>> anySpace <*>> expr
-let equation = anySpace <*>> (formula <|> number) <<*> anySpace
-
-// Run the parser on a given input
-let parse input = run equation input
-
+let parse = runString equation ()

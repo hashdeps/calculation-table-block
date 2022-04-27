@@ -107,11 +107,15 @@ let renderEditor (trigger: Event -> unit) pos state (value: string) =
                                prop.value (value) ]
               ) ]
 
-let renderView trigger pos (value: option<_>) =
+let renderView trigger pos value =
+    let display = 
+        match value with
+        | Ok x -> x
+        | _ -> "#ERR"
     Html.td [ prop.className stylesheet.["cell"]
               prop.onClick //prop.style (if value.IsNone then [("background", "#ffb0b0")] else [("background", "white")])
                   (fun _ -> trigger (StartEdit(pos)))
-              prop.children (Html.text ((Option.defaultValue "#ERR" value))) ]
+              prop.children (Html.text (display)) ]
 
 let renderCell trigger pos state =
     let value = Map.tryFind pos state.Cells
@@ -123,9 +127,9 @@ let renderCell trigger pos state =
             match value with
             | Some value ->
                 parse value
-                |> Option.bind (evaluate Set.empty state.Cells)
-                |> Option.map string
-            | _ -> Some ""
+                |> Result.map (fun (parsed, _, _) -> evaluate Set.empty state.Cells parsed)
+                |> Result.map string
+            | _ -> Ok ""
 
         renderView trigger pos value
 
