@@ -164,9 +164,7 @@ let update (props: TableProps) msg state =
 
         state, cmd
 
-    | LoadEntityTypes et ->
-        console.log ("Loaded ETs", et)
-        { state with entityTypes = et }, Cmd.none
+    | LoadEntityTypes et -> { state with entityTypes = et }, Cmd.none
 
     | SetRowEntityType (row, entityTypeId) ->
         let newRows =
@@ -196,6 +194,8 @@ let update (props: TableProps) msg state =
         { state with Rows = newRows }, loadEntities
 
     | LoadRowEntities (row, entities) ->
+        console.log ("Loaded Ent", entities)
+
         { state with
             loadedEntities =
                 Map.change
@@ -289,7 +289,7 @@ let renderView trigger pos value =
     let display =
         match value with
         | Ok x -> x
-        | _ -> "#ERR"
+        | Error x -> string x
 
     Html.td [
         prop.className [
@@ -308,10 +308,11 @@ let renderCell trigger pos state =
         renderEditor trigger pos state (Option.defaultValue "" value)
     else
         let value =
+
             match value with
             | Some value ->
                 parse value
-                |> Result.map (fun (parsed, _, _) -> evaluate Set.empty state.Cells parsed)
+                |> Result.map (fun (parsed, _, _) -> evaluate Set.empty state.Cells state.loadedEntities parsed pos)
                 |> Result.map string
             | _ -> Ok ""
 

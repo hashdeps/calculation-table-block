@@ -74,7 +74,7 @@ module JsonPath =
                     let pattern = "^(?<i>-?\d+)(,(?<i>-?\d+))*$"
 
                     let regex =
-                        new Regex(pattern, RegexOptions.Compiled)
+                        new Regex(pattern, RegexOptions.None)
 
                     fun input ->
                         let index = regex.Match(input)
@@ -139,6 +139,7 @@ module JsonPath =
 
                       if (x.Groups.["predicate"].Success) then
                           let predicates =
+
                               x.Groups.["predicate"].Captures
 
                           yield quantifier, Type.Property(name)

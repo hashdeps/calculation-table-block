@@ -1,15 +1,34 @@
 #load "Parsec.fs"
 #load "Parser.fs"
-#load "Evaluator.fs"
 
 open Lang.Parser
+
+parse """=sum(employee)+2*3/4^5"""
+
+
+#r "nuget: Fable.Core"
+#r "nuget: Fable.SimpleJson"
+#load "../bp/Core.fs"
+#load "Evaluator.fs"
+
 open Lang.Evaluator
+open BP.Core
 
 let ast =
-    match parse "=(2+4)*3^4" with
+    match parse "=sum(employee)" with
     | Ok (ast, _, _) -> ast
     | Error x -> failwith $"{x}"
 
-evaluate Set.empty Map.empty ast
+let ent =
+    { new BlockProtocolEntity with
+        member x.entityId = "test"
+        member x.accountId = None
+        member x.entityTypeId = None
 
-parse "=1+2*3/4^5"
+        member x.Item
+            with get (_) = 4.2 }
+
+let ents = Map.ofList [ (1, [| ent |]) ]
+evaluate Set.empty Map.empty ents ast ('a', 1)
+
+parse "=sum(employee)"

@@ -8,12 +8,12 @@ type UnknownRecord = Map<string, obj>
 
 [<AllowNullLiteral>]
 type BlockProtocolEntity =
-    abstract accountId: string option with get, set
-    abstract entityId: string with get, set
-    abstract entityTypeId: string option with get, set
+    abstract accountId: string option
+    abstract entityId: string
+    abstract entityTypeId: string option
 
     [<Emit "$0[$1]{{=$2}}">]
-    abstract Item: key: string -> obj with get, set
+    abstract Item: key: string -> obj with get
 
 
 [<AllowNullLiteral>]

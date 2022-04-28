@@ -18,9 +18,10 @@ type Operator =
 
 type Expr =
     | Reference of Position
-    | Number of int
+    | Number of float
     | Unary of Expr * Operator
     | Binary of Expr * Operator * Expr
+    | FunctionCall of func: string * jsonPath: string
 
 let operatorMapping =
     function
@@ -46,9 +47,12 @@ let operator: Parser<Operator, unit> =
     <|> charReturn '/' Operator.Divide
 
 let reference =
-    letter .>>. pint32 |>> Reference
+    upper .>>. pint32 |>> Reference
 
-let number = pint32 |>> Number
+let functionIdentifier =
+    many1Satisfy (fun c -> (c >= 'a' && c <= 'z') || c = '_')
+
+let number = pfloat |>> Number
 
 
 // ----------------------------------------------------------------------------
@@ -121,6 +125,39 @@ let tableParser termParser operators =
 // Concrete parsers
 // ----------------------------------------------------------------------------
 
+let jsonPathArg =
+    let escape =
+        anyOf "\"\\/bfnrt"
+        |>> function
+            | 'b' -> "\b"
+            | 'f' -> "\u000C"
+            | 'n' -> "\n"
+            | 'r' -> "\r"
+            | 't' -> "\t"
+            | c -> string c
+
+    let unicodeEscape =
+        /// converts a hex char ([0-9a-fA-F]) to its integer number (0-15)
+        let hex2int c = (int c &&& 15) + (int c >>> 6) * 9
+
+        pchar 'u'
+        >>. pipe4 hex hex hex hex (fun h3 h2 h1 h0 ->
+            (hex2int h3) * 4096
+            + (hex2int h2) * 256
+            + (hex2int h1) * 16
+            + hex2int h0
+            |> char
+            |> string)
+
+    let escaped =
+        pchar '\\' >>. (escape <|> unicodeEscape)
+
+    let anyChar =
+        manySatisfy (fun c -> c <> '(' && c <> ')' && c <> '\\')
+
+    between (pchar '(') (pchar ')') (stringsSepBy anyChar escaped)
+
+
 // Precedence table of operators
 let operators =
     [ (Prefix, [ Minus ])
@@ -136,10 +173,16 @@ let paren =
     wsIgnore <| pchar '(' >>. wsIgnore term
     .>> pchar ')'
 
-let termAux = number <|> reference <|> paren
+let functionCall =
+    functionIdentifier .>>. jsonPathArg
+    |>> FunctionCall
+
+let termAux =
+    functionCall <|> number <|> reference <|> paren
+
 let ops = tableParser termAux operators
 
-termSetter.Value <- ops
+termSetter.Value <- functionCall
 
 let formula = wsIgnore (pchar '=') >>. term
 let equation = wsIgnore (formula <|> number)
