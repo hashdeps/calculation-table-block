@@ -29,20 +29,18 @@ type BlockProtocolEntityType =
     abstract Item: key: string -> obj with get, set
 
 
-[<AllowNullLiteral>]
 type BlockProtocolCreateEntitiesAction =
-    abstract entityTypeId: string with get, set
-    abstract entityTypeVersionId: string option with get, set
-    abstract data: UnknownRecord with get, set
-    abstract accountId: string option with get, set
+    { entityTypeId: string
+      entityTypeVersionId: string option
+      data: UnknownRecord
+      accountId: string option }
 // abstract links: DistributedOmit listBlockProtocolCreateLinksAction, BlockProtocolCreateEntitiesActionLinksDistributedOmitArrayDistributedOmit>> option with get, set
 
 
-[<AllowNullLiteral>]
 type BlockProtocolGetEntitiesAction =
-    abstract accountId: string option with get, set
-    abstract entityId: string with get, set
-    abstract entityTypeId: string option with get, set
+    { accountId: string option
+      entityId: string
+      entityTypeId: string option }
 
 
 type BlockProtocolUpdateEntitiesAction =
@@ -50,11 +48,39 @@ type BlockProtocolUpdateEntitiesAction =
       accountId: string option
       data: obj }
 
-[<AllowNullLiteral>]
 type BlockProtocolDeleteEntitiesAction =
-    abstract accountId: string option with get, set
-    abstract entityId: string with get, set
-    abstract entityTypeId: string option with get, set
+    { accountId: string option
+      entityId: string
+      entityTypeId: string option }
+
+
+[<StringEnum>]
+type BlockProtocolMultiFilterOperatorType =
+    | AND
+    | OR
+
+type BlockProtocolMultiFilter =
+    { field: string
+      operator: BlockProtocolMultiFilterOperatorType
+      value: string }
+
+type BlockProtocolMultiFilters =
+    { filters: BlockProtocolMultiFilterOperatorType []
+      operator: BlockProtocolMultiFilterOperatorType }
+
+type BlockProtocolMultiSort = { field: string; desc: bool option }
+
+type BlockProtocolAggregateOperationInput =
+    { entityTypeId: string option
+      entityTypeVersionId: string option
+      pageNumber: int
+      itemsPerPage: int option
+      multiSort: BlockProtocolMultiSort [] option
+      multiFilter: BlockProtocolMultiFilter option }
+
+type BlockProtocolAggregateEntitiesPayload =
+    { operation: BlockProtocolAggregateOperationInput
+      accountId: string option }
 
 [<AllowNullLiteral>]
 type BlockProtocolAggregateEntitiesResult<'T> =
@@ -82,8 +108,31 @@ type BlockProtocolDeleteEntitiesFunction =
     [<Emit "$0($1...)">]
     abstract Invoke: actions: BlockProtocolDeleteEntitiesAction [] -> Promise<bool []>
 
-// type [<AllowNullLiteral>] BlockProtocolAggregateEntitiesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: payload: BlockProtocolAggregateEntitiesPayload -> Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>>
+[<AllowNullLiteral>]
+type BlockProtocolAggregateEntitiesFunction =
+    [<Emit "$0($1...)">]
+    abstract Invoke:
+        payload: BlockProtocolAggregateEntitiesPayload ->
+            Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>>
+
+
+type BlockProtocolAggregateEntityTypesOperationInput =
+    { pageNumber: int
+      itemsPerPage: int option
+      multiSort: BlockProtocolMultiSort [] option
+      multiFilter: BlockProtocolMultiFilter option }
+
+
+type BlockProtocolAggregateEntityTypesPayload =
+    { accountId: string option
+      operation: BlockProtocolAggregateEntityTypesOperationInput option }
+
+[<AllowNullLiteral>]
+type BlockProtocolAggregateEntityTypesFunction =
+    [<Emit "$0($1...)">]
+    abstract Invoke:
+        payload: BlockProtocolAggregateEntityTypesPayload ->
+            Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntityType>>
 
 // type [<AllowNullLiteral>] BlockProtocolGetLinkAction =
 //     abstract linkId: string with get, set
@@ -102,9 +151,6 @@ type BlockProtocolDeleteEntitiesFunction =
 // type [<AllowNullLiteral>] BlockProtocolCreateEntityTypesFunction =
 //     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolCreateEntityTypesAction list -> Promise<BlockProtocolEntityType list>
 
-// type [<AllowNullLiteral>] BlockProtocolAggregateEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: payload: BlockProtocolAggregateEntityTypesPayload -> Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntityType>>
-
 // type [<AllowNullLiteral>] BlockProtocolGetEntityTypesFunction =
 //     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolGetEntityTypesAction list -> Promise<BlockProtocolEntityType list>
 
@@ -122,8 +168,8 @@ type BlockProtocolFunctions =
     abstract getEntities: BlockProtocolGetEntitiesFunction option with get, set
     abstract deleteEntities: BlockProtocolDeleteEntitiesFunction option with get, set
     abstract updateEntities: BlockProtocolUpdateEntitiesFunction option with get, set
-// abstract aggregateEntities: BlockProtocolAggregateEntitiesFunction option with get, set
-// abstract aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction option with get, set
+    abstract aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction option with get, set
+    abstract aggregateEntities: BlockProtocolAggregateEntitiesFunction option with get, set
 // abstract createEntityTypes: BlockProtocolCreateEntityTypesFunction option with get, set
 // abstract getEntityTypes: BlockProtocolGetEntityTypesFunction option with get, set
 // abstract updateEntityTypes: BlockProtocolUpdateEntityTypesFunction option with get, set

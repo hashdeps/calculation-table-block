@@ -17,6 +17,19 @@
   text-overflow: ellipsis;
 }
 
+.minus-button {
+  display: inline-block;
+  background-color: #e0e0e0;
+  border: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 1em;
+  height: 1em;
+  padding:0;
+  margin: 0;
+  margin-right: 0.5em;
+}
+
 .clear-button {
   border: 0;
   cursor: pointer;

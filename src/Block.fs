@@ -6,25 +6,18 @@ open Table.Table
 open Fable.Core.JsInterop
 
 [<ReactComponent(exportDefault = true)>]
-let Block
-    (props: {| accountId: string
-               entityId: string
-               updateEntities: BlockProtocolUpdateEntitiesFunction
-               cells: SerializedGrid option |})
-    =
-    // React.useEffect (
-    //     (fun () ->
-    //         props.updateEntities.Invoke [|
-    //             { accountId = Some(props.accountId)
-    //               entityId = props.entityId
-    //               data = {| hello = "world" |} }
-    //         |]
-    //         |> Promise.map (fun res -> console.log ("Promise result", res))
-    //         |> ignore),
+let Block (props: TableProps) =
+    React.useEffect (
+        (fun () ->
+            props.aggregateEntityTypes.Invoke
+                { accountId = Some(props.accountId)
+                  operation = None }
+            |> Promise.map (fun res -> console.log ("Promise result", res))
+            |> ignore),
 
 
-    //     [||]
-    // )
+        [||]
+    )
 
 
     React.fragment [

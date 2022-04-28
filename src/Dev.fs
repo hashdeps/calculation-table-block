@@ -14,10 +14,11 @@ let node = document.getElementById "app"
 let App () =
     MockBlockDock [
         (Block
-            {| accountId = "abc"
-               entityId = "entityId-test"
-               updateEntities = null
-               cells = None |})
+            { accountId = "abc"
+              entityId = "entityId-test"
+              updateEntities = null
+              aggregateEntityTypes = null
+              cells = None })
     ]
 
 ReactDOM.render (App(), node)
