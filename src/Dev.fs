@@ -18,6 +18,7 @@ let App () =
               entityId = "entityId-test"
               updateEntities = null
               aggregateEntityTypes = null
+              aggregateEntities = null
               cells = None })
     ]
 

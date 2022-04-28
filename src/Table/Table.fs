@@ -26,6 +26,7 @@ type TableProps =
     { accountId: string
       entityId: string
       aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction
+      aggregateEntities: BlockProtocolAggregateEntitiesFunction
       updateEntities: BlockProtocolUpdateEntitiesFunction
       cells: SerializedGrid option }
 
@@ -41,18 +42,20 @@ type Event =
     | AddRow
     | RemoveRow of row: int
     | DispatchLoadEntityTypes
-    | LoadEntityTypes of BlockProtocolAggregateEntitiesResult<BlockProtocolEntityType>
+    | LoadEntityTypes of BlockProtocolEntityType []
     | DeserializeGrid of SerializedGrid * save: bool
-    | LoadEntityTypeAggregation of row: int * entityId: string
+    | SetRowEntityType of row: int * entityTypeId: string
+    | LoadRowEntities of row: int * BlockProtocolEntity []
 
-type RowSelection = RowSelection of int * entityId: string option
+type RowSelection = RowSelection of row: int * entityTypeId: string option
 
 type State =
     { Rows: RowSelection list
       Active: Position option
       Cols: char list
       Cells: Map<Position, string>
-      entityTypes: BlockProtocolEntityType [] }
+      entityTypes: BlockProtocolEntityType []
+      loadedEntities: Map<int, BlockProtocolEntity []> }
 
 type Movement =
     | MoveTo of Position
@@ -157,25 +160,50 @@ let update (props: TableProps) msg state =
                           operation = None }
                     ))
                 null
-                (fun et -> LoadEntityTypes et)
+                (fun et -> LoadEntityTypes et.results)
 
         state, cmd
 
-    | LoadEntityTypeAggregation (row, entityId) ->
+    | LoadEntityTypes et ->
+        console.log ("Loaded ETs", et)
+        { state with entityTypes = et }, Cmd.none
+
+    | SetRowEntityType (row, entityTypeId) ->
         let newRows =
             state.Rows
             |> List.map (fun (RowSelection (x, et)) ->
                 if row = x then
-                    RowSelection(x, Some entityId)
+                    RowSelection(x, Some entityTypeId)
                 else
                     RowSelection(x, et))
 
+        let loadEntities =
+            Cmd.OfPromise.perform
+                (fun entityTypdId ->
+                    props.aggregateEntities.Invoke(
+                        { accountId = Some props.entityId
+                          operation =
+                            { entityTypeId = Some entityTypdId
+                              entityTypeVersionId = None
+                              pageNumber = 1
+                              itemsPerPage = None
+                              multiSort = None
+                              multiFilter = None } }
+                    ))
+                entityTypeId
+                (fun x -> LoadRowEntities(row, x.results))
 
-        { state with Rows = newRows }, Cmd.none
+        { state with Rows = newRows }, loadEntities
 
-    | LoadEntityTypes et ->
-        console.log ("Loaded ETs", et.results)
-        { state with entityTypes = et.results }, Cmd.none
+    | LoadRowEntities (row, entities) ->
+        { state with
+            loadedEntities =
+                Map.change
+                    row
+                    (function
+                    | _ -> Some entities)
+                    state.loadedEntities },
+        Cmd.none
 
     | DeserializeGrid (grid, save) ->
         let cells = Map.ofArray grid
@@ -304,7 +332,7 @@ let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row =
 
 
     Html.select [
-        prop.onChange (fun value -> trigger (LoadEntityTypeAggregation(row, value)))
+        prop.onChange (fun value -> trigger (SetRowEntityType(row, value)))
         prop.children ((Html.option [ prop.text ("-") ]) :: options)
     ]
 
@@ -325,7 +353,7 @@ let view state trigger =
             prop.text text
         ]
 
-    let colHeader n entityId =
+    let colHeader n entityTypeId =
         Html.th [
             Html.button [
                 prop.className stylesheet.["minus-button"]
@@ -348,12 +376,12 @@ let view state trigger =
 
     let row cells = Html.tr cells
 
-    let cells (RowSelection (n, entityId)) =
+    let cells (RowSelection (n, entityTypeId)) =
         let cells =
             state.Cols
             |> List.map (fun h -> renderCell trigger (h, n) state)
 
-        colHeader n entityId :: cells
+        colHeader n entityTypeId :: cells
 
     let rows =
         state.Rows
@@ -388,7 +416,8 @@ let initial cells =
         |> List.map (fun x -> RowSelection(x, None))
       Active = None
       Cells = Map.empty
-      entityTypes = [||] },
+      entityTypes = [||]
+      loadedEntities = Map.empty },
     cells
     |> Option.map (fun c ->
         Cmd.batch [
