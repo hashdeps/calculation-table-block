@@ -3,8 +3,8 @@ module Table.Table
 open Feliz
 open Feliz.UseElmish
 
-open Parser
-open Evaluator
+open Lang.Parser
+open Lang.Evaluator
 
 let private stylesheet =
     Stylesheet.load "../styles/table.module.scss"
@@ -40,10 +40,10 @@ type Direction =
 
 let KeyDirection: Map<string, Direction> =
     Map.ofList [
-        ("ArrowLeft", Left)
-        ("ArrowUp", Up)
-        ("ArrowRight", Right)
-        ("ArrowDown", Down)
+        ("Shift-Tab", Left)
+        ("Shift-Enter", Up)
+        ("Tab", Right)
+        ("Enter", Down)
     ]
 
 // ----------------------------------------------------------------------------
@@ -67,7 +67,20 @@ let update msg state =
 // RENDERING
 // ----------------------------------------------------------------------------
 
-let getDirection (ke: Browser.Types.KeyboardEvent) : Option<Direction> = Map.tryFind ke.key KeyDirection
+let getDirection (ke: Browser.Types.KeyboardEvent) : Option<Direction> =
+    let key =
+        if ke.shiftKey then
+            $"Shift-{ke.key}"
+        else
+            ke.key
+
+    let maybeDirection =
+        Map.tryFind key KeyDirection
+
+    if maybeDirection.IsSome then
+        ke.preventDefault ()
+
+    maybeDirection
 
 let getPosition ((col, row): Position) (direction: Direction) : Position =
     match direction with

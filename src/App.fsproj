@@ -6,9 +6,9 @@
         <None Include="index.html" />
         <Compile Include="Extensions.fs" />
         <Compile Include="bp/Core.fs" />
-        <Compile Include="Table/Parsec.fs" />
-        <Compile Include="Table/Parser.fs" />
-        <Compile Include="Table/Evaluator.fs" />
+        <Compile Include="Lang/Parsec.fs" />
+        <Compile Include="Lang/Parser.fs" />
+        <Compile Include="Lang/Evaluator.fs" />
         <Compile Include="Table/Table.fs" />
         <Compile Include="Block.fs" />
         <Compile Include="Dev.fs" />

@@ -89,7 +89,7 @@ module.exports = {
   },
   plugins: isProduction
     ? commonPlugins.concat([
-        new MiniCssExtractPlugin({ filename: "style.[contenthash].css" }),
+        // new MiniCssExtractPlugin({ filename: "style.[contenthash].css" }),
         new CopyWebpackPlugin({
           patterns: [
             { from: resolve(CONFIG.assetsDir), to: "./public/" },
@@ -102,6 +102,8 @@ module.exports = {
         new StatsPlugin(),
       ])
     : commonPlugins.concat([
+        new StatsPlugin(),
+
         new HtmlWebpackPlugin({
           filename: "index.html",
           template: resolve(CONFIG.indexHtmlTemplate),

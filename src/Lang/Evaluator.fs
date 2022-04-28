@@ -1,6 +1,6 @@
-module Table.Evaluator
+module Lang.Evaluator
 
-open Table.Parser
+open Lang.Parser
 
 let (>>=) m f = Option.bind f m
 let (<*>) m f = Option.map f m
@@ -27,7 +27,7 @@ let binaryFuncs op (l: int) (r: int) =
     | Multiply -> l * r
     | Divide -> l / r
     | Exponent -> pown l r
-    | _ -> failwith "Unimplemented"
+// | _ -> failwith "Unimplemented"
 
 
 let rec evaluate visited (cells: Map<Position, string>) expr =

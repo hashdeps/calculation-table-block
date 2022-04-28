@@ -1,4 +1,4 @@
-module Table.Parser
+module Lang.Parser
 
 open Parsec
 
