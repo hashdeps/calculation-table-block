@@ -7,18 +7,17 @@ open Fable.Core.JsInterop
 
 [<ReactComponent(exportDefault = true)>]
 let Block (props: TableProps) =
-    React.useEffect (
-        (fun () ->
-            props.aggregateEntityTypes.Invoke
-                { accountId = Some(props.accountId)
-                  operation = None }
-            |> Promise.map (fun res -> console.log ("Promise result", res))
-            |> ignore),
+    // React.useEffect (
+    //     (fun () ->
+    //         props.aggregateEntityTypes.Invoke
+    //             { accountId = Some(props.accountId)
+    //               operation = None }
+    //         |> Promise.map (fun res -> console.log ("Promise result", res))
+    //         |> ignore),
 
 
-        [||]
-    )
-
+    //     [||]
+    // )
 
     React.fragment [
         Html.div [

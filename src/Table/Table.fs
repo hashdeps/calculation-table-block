@@ -39,14 +39,20 @@ type Event =
     | StartEdit of Position
     | SaveState
     | AddRow
-    | RemoveRow of number: int
-    | LoadState of SerializedGrid * save: bool
+    | RemoveRow of row: int
+    | DispatchLoadEntityTypes
+    | LoadEntityTypes of BlockProtocolAggregateEntitiesResult<BlockProtocolEntityType>
+    | DeserializeGrid of SerializedGrid * save: bool
+    | LoadEntityTypeAggregation of row: int * entityId: string
+
+type RowSelection = RowSelection of int * entityId: string option
 
 type State =
-    { Rows: int list
+    { Rows: RowSelection list
       Active: Position option
       Cols: char list
-      Cells: Map<Position, string> }
+      Cells: Map<Position, string>
+      entityTypes: BlockProtocolEntityType [] }
 
 type Movement =
     | MoveTo of Position
@@ -86,18 +92,25 @@ let update (props: TableProps) msg state =
     | AddRow ->
         let row =
             List.tryLast state.Rows
-            |> Option.map (fun x -> x + 1)
+            |> Option.map (fun (RowSelection (x, _)) -> x + 1)
             |> Option.defaultValue 1
 
-        let newRows = state.Rows @ [ row ]
+        let newRows =
+            state.Rows @ [ RowSelection(row, None) ]
+
         { state with Rows = newRows }, Cmd.none
 
     | RemoveRow n ->
         let rec removeRec rows n sub =
             match rows with
             | [] -> []
-            | x :: xs when x = n -> removeRec xs n true
-            | x :: xs -> (if sub then x - 1 else x) :: (removeRec xs n sub)
+            | RowSelection (x, _) :: xs when x = n -> removeRec xs n true
+            | (RowSelection (x, s) as row) :: xs ->
+                (if sub then
+                     RowSelection(x - 1, s)
+                 else
+                     row)
+                :: (removeRec xs n sub)
 
 
         let newRows = (removeRec state.Rows n false)
@@ -134,7 +147,37 @@ let update (props: TableProps) msg state =
                 |> Promise.map (fun res -> console.log ("saved state", res)))
             serialized
             (fun _ -> SaveState))
-    | LoadState (grid, save) ->
+
+    | DispatchLoadEntityTypes ->
+        let cmd =
+            Cmd.OfPromise.perform
+                (fun _ ->
+                    props.aggregateEntityTypes.Invoke(
+                        { accountId = Some(props.accountId)
+                          operation = None }
+                    ))
+                null
+                (fun et -> LoadEntityTypes et)
+
+        state, cmd
+
+    | LoadEntityTypeAggregation (row, entityId) ->
+        let newRows =
+            state.Rows
+            |> List.map (fun (RowSelection (x, et)) ->
+                if row = x then
+                    RowSelection(x, Some entityId)
+                else
+                    RowSelection(x, et))
+
+
+        { state with Rows = newRows }, Cmd.none
+
+    | LoadEntityTypes et ->
+        console.log ("Loaded ETs", et.results)
+        { state with entityTypes = et.results }, Cmd.none
+
+    | DeserializeGrid (grid, save) ->
         let cells = Map.ofArray grid
 
         { state with Cells = cells },
@@ -176,7 +219,7 @@ let getMovement (state: State) (direction: Direction) : Movement =
             getPosition position direction
 
         if List.contains col state.Cols
-           && List.contains row state.Rows then
+           && List.exists (fun (RowSelection (x, _)) -> x = row) state.Rows then
             MoveTo(col, row)
         else
             Invalid
@@ -246,6 +289,25 @@ let renderCell trigger pos state =
 
         renderView trigger pos value
 
+
+let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row =
+    let options =
+        et
+        |> List.ofArray
+        |> List.map (fun x ->
+            let x = x
+
+            Html.option [
+                prop.value (x.entityTypeId)
+                prop.text (x.title)
+            ])
+
+
+    Html.select [
+        prop.onChange (fun value -> trigger (LoadEntityTypeAggregation(row, value)))
+        prop.children ((Html.option [ prop.text ("-") ]) :: options)
+    ]
+
 let view state trigger =
 
     let empty =
@@ -253,7 +315,7 @@ let view state trigger =
             Html.button [
                 prop.className stylesheet.["clear-button"]
                 prop.innerHtml "&times;"
-                prop.onClick (fun _ -> trigger (LoadState(Array.empty, true)))
+                prop.onClick (fun _ -> trigger (DeserializeGrid(Array.empty, true)))
             ]
         ]
 
@@ -263,7 +325,7 @@ let view state trigger =
             prop.text text
         ]
 
-    let colHeader n =
+    let colHeader n entityId =
         Html.th [
             Html.button [
                 prop.className stylesheet.["minus-button"]
@@ -272,7 +334,10 @@ let view state trigger =
             ]
             Html.span [
                 prop.className stylesheet.["header"]
-                prop.text (string n)
+                prop.text ($"{n}")
+                prop.children [
+                    entityTypesDropdown trigger state.entityTypes n
+                ]
             ]
         ]
 
@@ -283,12 +348,12 @@ let view state trigger =
 
     let row cells = Html.tr cells
 
-    let cells n =
+    let cells (RowSelection (n, entityId)) =
         let cells =
             state.Cols
             |> List.map (fun h -> renderCell trigger (h, n) state)
 
-        colHeader n :: cells
+        colHeader n entityId :: cells
 
     let rows =
         state.Rows
@@ -318,12 +383,19 @@ let view state trigger =
 
 let initial cells =
     { Cols = [ 'A' .. 'E' ]
-      Rows = [ 1..3 ]
+      Rows =
+        [ 1..3 ]
+        |> List.map (fun x -> RowSelection(x, None))
       Active = None
-      Cells = Map.empty },
+      Cells = Map.empty
+      entityTypes = [||] },
     cells
-    |> Option.map ((flip pair) false >> LoadState >> Cmd.ofMsg)
-    |> Option.defaultValue Cmd.none
+    |> Option.map (fun c ->
+        Cmd.batch [
+            Cmd.ofMsg (DeserializeGrid(c, false))
+            Cmd.ofMsg DispatchLoadEntityTypes
+        ])
+    |> Option.defaultValue (Cmd.ofMsg DispatchLoadEntityTypes)
 
 [<ReactComponent>]
 let Spreadsheet (props: TableProps) =
