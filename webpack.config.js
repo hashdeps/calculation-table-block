@@ -84,8 +84,8 @@ module.exports = {
   mode: isProduction ? "production" : "development",
   devtool: isProduction ? undefined : "eval-source-map",
   optimization: {
-    usedExports: true,
-    moduleIds: "named",
+    // usedExports: true,
+    // moduleIds: "named",
   },
   plugins: isProduction
     ? commonPlugins.concat([

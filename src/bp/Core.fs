@@ -35,7 +35,7 @@ type BlockProtocolCreateEntitiesAction =
     abstract entityTypeVersionId: string option with get, set
     abstract data: UnknownRecord with get, set
     abstract accountId: string option with get, set
-// abstract links: ResizeArray<DistributedOmit<BlockProtocolCreateLinksAction, BlockProtocolCreateEntitiesActionLinksDistributedOmitArrayDistributedOmit>> option with get, set
+// abstract links: DistributedOmit listBlockProtocolCreateLinksAction, BlockProtocolCreateEntitiesActionLinksDistributedOmitArrayDistributedOmit>> option with get, set
 
 
 [<AllowNullLiteral>]
@@ -45,13 +45,10 @@ type BlockProtocolGetEntitiesAction =
     abstract entityTypeId: string option with get, set
 
 
-[<AllowNullLiteral>]
 type BlockProtocolUpdateEntitiesAction =
-    abstract entityTypeId: string option with get, set
-    abstract entityTypeVersionId: string option with get, set
-    abstract entityId: string with get, set
-    abstract accountId: string option with get, set
-    abstract data: UnknownRecord with get, set
+    { entityId: string
+      accountId: string option
+      data: obj }
 
 [<AllowNullLiteral>]
 type BlockProtocolDeleteEntitiesAction =
@@ -61,31 +58,29 @@ type BlockProtocolDeleteEntitiesAction =
 
 [<AllowNullLiteral>]
 type BlockProtocolAggregateEntitiesResult<'T> =
-    abstract results: ResizeArray<'T> with get, set
+    abstract results: 'T [] with get, set
     abstract operation: obj with get, set
 
 
 [<AllowNullLiteral>]
 type BlockProtocolCreateEntitiesFunction =
     [<Emit "$0($1...)">]
-    abstract Invoke:
-        actions: ResizeArray<BlockProtocolCreateEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
+    abstract Invoke: actions: BlockProtocolCreateEntitiesAction [] -> Promise<BlockProtocolEntity []>
 
 [<AllowNullLiteral>]
 type BlockProtocolGetEntitiesFunction =
     [<Emit "$0($1...)">]
-    abstract Invoke: actions: ResizeArray<BlockProtocolGetEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
+    abstract Invoke: actions: BlockProtocolGetEntitiesAction [] -> Promise<BlockProtocolEntity []>
 
 [<AllowNullLiteral>]
 type BlockProtocolUpdateEntitiesFunction =
     [<Emit "$0($1...)">]
-    abstract Invoke:
-        actions: ResizeArray<BlockProtocolUpdateEntitiesAction> -> Promise<ResizeArray<BlockProtocolEntity>>
+    abstract Invoke: actions: BlockProtocolUpdateEntitiesAction [] -> Promise<BlockProtocolEntity []>
 
 [<AllowNullLiteral>]
 type BlockProtocolDeleteEntitiesFunction =
     [<Emit "$0($1...)">]
-    abstract Invoke: actions: ResizeArray<BlockProtocolDeleteEntitiesAction> -> Promise<ResizeArray<bool>>
+    abstract Invoke: actions: BlockProtocolDeleteEntitiesAction [] -> Promise<bool []>
 
 // type [<AllowNullLiteral>] BlockProtocolAggregateEntitiesFunction =
 //     [<Emit "$0($1...)">] abstract Invoke: payload: BlockProtocolAggregateEntitiesPayload -> Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>>
@@ -93,31 +88,31 @@ type BlockProtocolDeleteEntitiesFunction =
 // type [<AllowNullLiteral>] BlockProtocolGetLinkAction =
 //     abstract linkId: string with get, set
 // type [<AllowNullLiteral>] BlockProtocolGetLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolGetLinkAction> -> Promise<ResizeArray<BlockProtocolLink>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolGetLinkAction list -> Promise<BlockProtocolLink list>
 
 // type [<AllowNullLiteral>] BlockProtocolCreateLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolCreateLinksAction> -> Promise<ResizeArray<BlockProtocolLink>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolCreateLinksAction list -> Promise<BlockProtocolLink list>
 
 // type [<AllowNullLiteral>] BlockProtocolUpdateLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolUpdateLinksAction> -> Promise<ResizeArray<BlockProtocolLink>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolUpdateLinksAction list -> Promise<BlockProtocolLink list>
 
 // type [<AllowNullLiteral>] BlockProtocolDeleteLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolDeleteLinksAction> -> Promise<ResizeArray<bool>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolDeleteLinksAction list -> Promise<bool list>
 
 // type [<AllowNullLiteral>] BlockProtocolCreateEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolCreateEntityTypesAction> -> Promise<ResizeArray<BlockProtocolEntityType>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolCreateEntityTypesAction list -> Promise<BlockProtocolEntityType list>
 
 // type [<AllowNullLiteral>] BlockProtocolAggregateEntityTypesFunction =
 //     [<Emit "$0($1...)">] abstract Invoke: payload: BlockProtocolAggregateEntityTypesPayload -> Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntityType>>
 
 // type [<AllowNullLiteral>] BlockProtocolGetEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolGetEntityTypesAction> -> Promise<ResizeArray<BlockProtocolEntityType>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolGetEntityTypesAction list -> Promise<BlockProtocolEntityType list>
 
 // type [<AllowNullLiteral>] BlockProtocolUpdateEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolUpdateEntityTypesAction> -> Promise<ResizeArray<BlockProtocolEntityType>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolUpdateEntityTypesAction list -> Promise<BlockProtocolEntityType list>
 
 // type [<AllowNullLiteral>] BlockProtocolDeleteEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: ResizeArray<BlockProtocolDeleteEntityTypesAction> -> Promise<ResizeArray<bool>>
+//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolDeleteEntityTypesAction list -> Promise<bool list>
 
 type BlockProtocolFunction = obj
 
@@ -149,7 +144,5 @@ type BlockProtocolProps =
         abstract entityId: string
         abstract entityTypeId: string option
         abstract entityTypeVersionId: string option
-        abstract entityTypes: ResizeArray<BlockProtocolEntityType> option
-        // missing links and linkedaggregations
-
+        abstract entityTypes: BlockProtocolEntityType [] option
     end

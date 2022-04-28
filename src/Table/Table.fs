@@ -1,5 +1,8 @@
 module Table.Table
 
+open Fable.Core.JsInterop
+open BP.Core
+open Elmish
 open Feliz
 open Feliz.UseElmish
 
@@ -14,13 +17,20 @@ let isError =
     | Error _ -> true
     | _ -> false
 
+let flip f a b = f b a
+let pair a b = (a, b)
+
 // ----------------------------------------------------------------------------
 // DOMAIN MODEL
 // ----------------------------------------------------------------------------
 
+type SerializedGrid = (Position * string) []
+
 type Event =
     | UpdateValue of Position * string
     | StartEdit of Position
+    | SaveState
+    | LoadState of SerializedGrid * save: bool
 
 type State =
     { Rows: int list
@@ -50,9 +60,16 @@ let KeyDirection: Map<string, Direction> =
 // EVENT HANDLING
 // ----------------------------------------------------------------------------
 
-let update msg state =
+let update
+    (props: {| accountId: string
+               entityId: string
+               updateEntities: BlockProtocolUpdateEntitiesFunction
+               cells: SerializedGrid option |})
+    msg
+    state
+    =
     match msg with
-    | StartEdit (pos) -> { state with Active = Some pos }, []
+    | StartEdit (pos) -> { state with Active = Some pos }, Cmd.none
 
     | UpdateValue (pos, value) ->
         let newCells =
@@ -61,8 +78,30 @@ let update msg state =
             else
                 Map.add pos value state.Cells
 
-        { state with Cells = newCells }, []
+        { state with Cells = newCells }, Cmd.none
 
+    | SaveState ->
+        let serialized = Map.toArray state.Cells
+
+        state,
+        (Cmd.OfPromise.attempt
+            (fun cells ->
+                props.updateEntities.Invoke [|
+                    { accountId = Some(props.accountId)
+                      entityId = props.entityId
+                      data = {| cells = cells |} }
+                |]
+                |> Promise.map (fun res -> console.log ("saved state", res)))
+            serialized
+            (fun _ -> SaveState))
+    | LoadState (grid, save) ->
+        let cells = Map.ofArray grid
+
+        { state with Cells = cells },
+        if save then
+            Cmd.ofMsg SaveState
+        else
+            Cmd.none
 // ----------------------------------------------------------------------------
 // RENDERING
 // ----------------------------------------------------------------------------
@@ -102,14 +141,17 @@ let getMovement (state: State) (direction: Direction) : Movement =
         else
             Invalid
 
-let getKeyPressEvent state trigger =
-    fun (ke: Browser.Types.Event) ->
-        match getDirection (ke :?> _) with
-        | None -> ()
-        | Some direction ->
-            match getMovement state direction with
-            | Invalid -> ()
-            | MoveTo position -> trigger (StartEdit(position))
+let getKeyPressEvent state trigger ke =
+    match getDirection ke with
+    | None ->
+        if ke.key = "s" && ke.ctrlKey then
+            ke.preventDefault ()
+            trigger (SaveState)
+
+    | Some direction ->
+        match getMovement state direction with
+        | Invalid -> ()
+        | MoveTo position -> trigger (StartEdit(position))
 
 let renderEditor (trigger: Event -> unit) pos state (value: string) =
     Html.td [
@@ -165,7 +207,15 @@ let renderCell trigger pos state =
         renderView trigger pos value
 
 let view state trigger =
-    let empty = Html.td []
+
+    let empty =
+        Html.td [
+            Html.button [
+                prop.className stylesheet.["clear-button"]
+                prop.innerHtml "&times;"
+                prop.onClick (fun _ -> trigger (LoadState(Array.empty, true)))
+            ]
+        ]
 
     let header (htext: string) =
         Html.th [
@@ -202,16 +252,24 @@ let view state trigger =
         )
     ]
 
-let initial () =
+let initial cells =
     { Cols = [ 'A' .. 'K' ]
       Rows = [ 1..15 ]
       Active = None
       Cells = Map.empty },
-    []
+    cells
+    |> Option.map ((flip pair) false >> LoadState >> Cmd.ofMsg)
+    |> Option.defaultValue Cmd.none
 
 [<ReactComponent>]
-let Spreadsheet () =
+let Spreadsheet
+    (props: {| accountId: string
+               entityId: string
+               updateEntities: BlockProtocolUpdateEntitiesFunction
+               cells: SerializedGrid option |})
+    =
+
     let state, dispatch =
-        React.useElmish (initial, update, [||])
+        React.useElmish (initial props.cells, (update props), [| props :> obj |])
 
     view state dispatch

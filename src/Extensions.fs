@@ -5,6 +5,9 @@ open System
 open Fable.Core
 open Fable.Core.JsInterop
 
+[<Global>]
+let console: JS.Console = jsNative
+
 [<RequireQualifiedAccess>]
 module StaticFile =
 

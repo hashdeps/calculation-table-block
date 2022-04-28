@@ -18,7 +18,7 @@
     "prebuild": "dotnet tool restore",
     "build": "dotnet fable ./src -e .fs.js -o dist/build && webpack",
     "http-server": "http-server dist/out -p 7777 -c-1 -g --cors",
-    "serve": "concurrently -n build,serve 'npm:build' 'npm:http-server'",
+    "serve": "concurrently -n build,serve 'dotnet fable watch ./src -e .fs.js -o dist/build --runWatch webpack' 'npm:http-server'",
     "test:live": "dotnet fable watch tests -e .fs.js -o dist/tests --run webpack-dev-server --config ./webpack.tests.js",
     "build:test": "dotnet fable tests -e .fs.js -o dist/tests && webpack --config webpack.tests.js",
     "pretest": "dotnet tool restore",

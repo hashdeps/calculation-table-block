@@ -17,13 +17,23 @@
   text-overflow: ellipsis;
 }
 
+.clear-button {
+  border: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 1.5em;
+  height: 1.5em;
+  padding: 0;
+  margin: 0;
+}
+
 .cell {
   width: 1.75em;
   height: 1.25em !important;
 
   border-left: 1px solid #e0e0e0 !important;
   overflow: hidden;
-  padding: .5em 0 !important;
+  padding: .25em 0 !important;
   text-align: center;
   text-overflow: ellipsis;
 }
@@ -33,7 +43,7 @@
 }
 
 .selected {
-  padding: .5em 0 !important;
+  padding: .25em 0 !important;
 }
 
 .input {
