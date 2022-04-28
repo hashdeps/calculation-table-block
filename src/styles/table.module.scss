@@ -1,7 +1,6 @@
 @import "~bulma/sass/utilities/_all.sass";
 @import "~bulma/sass/elements/table.sass";
 
-
 .table {
   border-spacing: 0px;
   border-bottom: 1px solid #e0e0e0 !important;
@@ -23,9 +22,9 @@
   border: 0;
   cursor: pointer;
   border-radius: 50%;
-  width: 1em;
-  height: 1em;
-  padding:0;
+  width: 1.25em;
+  height: 1.25em;
+  padding: 0;
   margin: 0;
   margin-right: 0.5em;
 }
@@ -40,13 +39,24 @@
   margin: 0;
 }
 
+.cell-wrap {
+  position: fixed;
+}
+
+.cell-input {
+  position: absolute;
+  left: -5.75em;
+  width: 15em;
+  top: 0.25em;
+}
+
 .cell {
   width: 1.75em;
   height: 1.25em !important;
 
   border-left: 1px solid #e0e0e0 !important;
   overflow: hidden;
-  padding: .25em 0 !important;
+  padding: 0.25em 0 !important;
   text-align: center;
   text-overflow: ellipsis;
 }
@@ -56,11 +66,12 @@
 }
 
 .selected {
-  padding: .25em 0 !important;
+  padding: 0.25em 0 !important;
+  border: 1px dashed black !important;
 }
 
 .input {
-  padding:0;
+  padding: 0;
   height: 1.25em !important;
 
   width: calc(100% - 5px);

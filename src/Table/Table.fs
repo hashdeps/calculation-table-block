@@ -38,6 +38,7 @@ type TableProps =
 type Event =
     | UpdateValue of Position * string
     | StartEdit of Position
+    | StopEdit
     | SaveState
     | AddRow
     | RemoveRow of row: int
@@ -82,6 +83,7 @@ let KeyDirection: Map<string, Direction> =
 let update (props: TableProps) msg state =
     match msg with
     | StartEdit (pos) -> { state with Active = Some pos }, Cmd.none
+    | StopEdit -> { state with Active = None }, Cmd.none
 
     | UpdateValue (pos, value) ->
         let newCells =
@@ -259,6 +261,10 @@ let getKeyPressEvent state trigger ke =
             ke.preventDefault ()
             trigger (SaveState)
 
+        if ke.key = "Escape" then
+            ke.preventDefault ()
+            trigger (StopEdit)
+
     | Some direction ->
         match getMovement state direction with
         | Invalid -> ()
@@ -266,21 +272,30 @@ let getKeyPressEvent state trigger ke =
 
 let renderEditor (trigger: Event -> unit) pos state (value: string) =
     Html.td [
-        prop.className stylesheet.["selected"]
+
+        prop.className [
+            stylesheet.["cell"]
+            stylesheet.["selected"]
+        ]
         prop.children (
-            Html.input [
-                prop.className stylesheet.["input"]
-                prop.autoFocus (true)
-                prop.onKeyDown (getKeyPressEvent state trigger)
-                prop.onInput (fun e ->
-                    trigger (
-                        UpdateValue(
-                            pos,
-                            (e.target :?> Browser.Types.HTMLInputElement)
-                                .value
-                        )
-                    ))
-                prop.value (value)
+            Html.div [
+                prop.className stylesheet.["cell-wrap"]
+                prop.children [
+                    Html.input [
+                        prop.className stylesheet.["cell-input"]
+                        prop.autoFocus (true)
+                        prop.onKeyDown (getKeyPressEvent state trigger)
+                        prop.onInput (fun e ->
+                            trigger (
+                                UpdateValue(
+                                    pos,
+                                    (e.target :?> Browser.Types.HTMLInputElement)
+                                        .value
+                                )
+                            ))
+                        prop.value (value)
+                    ]
+                ]
             ]
         )
     ]
@@ -289,7 +304,8 @@ let renderView trigger pos value =
     let display =
         match value with
         | Ok x -> x
-        | Error x -> string x
+        | _ -> "#ERR"
+    // | Error x -> string x
 
     Html.td [
         prop.className [
@@ -308,7 +324,6 @@ let renderCell trigger pos state =
         renderEditor trigger pos state (Option.defaultValue "" value)
     else
         let value =
-
             match value with
             | Some value ->
                 parse value
@@ -363,9 +378,9 @@ let view state trigger =
             ]
             Html.span [
                 prop.className stylesheet.["header"]
-                prop.text ($"{n}")
                 prop.children [
                     entityTypesDropdown trigger state.entityTypes n
+                    Html.text ($" {n}")
                 ]
             ]
         ]
