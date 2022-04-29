@@ -1,7 +1,14 @@
 {
+  "name": "@hashdeps/calculation-table",
+  "version": "0.1.0",
+  "description": "Spreadsheet-like table for doing computation on entities",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashdeps/calculation-table-block.git#main"
+  },
   "blockprotocol": {
     "displayName": "Calculation table",
-    "icon": "public/omega.svg",
+    "icon": "public/sigma.svg",
     "image": "public/block-preview.svg",
     "examples": [],
     "protocol": "0.1"
