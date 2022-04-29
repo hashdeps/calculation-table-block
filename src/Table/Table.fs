@@ -12,14 +12,17 @@ open Lang.Evaluator
 let private stylesheet =
     Stylesheet.load "../styles/table.module.scss"
 
-let isError =
-    function
-    | Error _ -> true
-    | _ -> false
-
 let flip f a b = f b a
 let pair a b = (a, b)
 
+let merge (a: Map<'a, 'b>) (b: Map<'a, 'b>) (f: 'a -> 'b * 'b -> 'b) =
+    Map.fold
+        (fun s k v ->
+            match Map.tryFind k s with
+            | Some v' -> Map.add k (f k (v, v')) s
+            | None -> Map.add k v s)
+        a
+        b
 
 // ----------------------------------------------------------------------------
 // DOMAIN MODEL
@@ -174,7 +177,12 @@ let update (props: TableProps) msg state =
             (fun _ -> SaveState))
 
     | DeserializeSaveState saveState ->
-        let cells = Map.ofArray saveState.cells
+        let loadedCells =
+            Map.ofArray saveState.cells
+
+        let cells =
+            merge loadedCells state.Cells (fun k (v, v') -> v')
+
 
         let entityAggToLoad =
             saveState.rows
@@ -210,11 +218,23 @@ let update (props: TableProps) msg state =
             state.Rows
             |> List.map (fun (x, et) ->
                 if row = x then
-                    RowSelection(x, Some entityTypeId)
+                    RowSelection(
+                        x,
+                        if entityTypeId <> "" then
+                            Some entityTypeId
+                        else
+                            None
+                    )
                 else
                     RowSelection(x, et))
 
-        { state with Rows = newRows }, Cmd.ofMsg (LoadRowEntities(row, entityTypeId))
+        let cmd =
+            if entityTypeId <> "" then
+                Cmd.ofMsg (LoadRowEntities(row, entityTypeId))
+            else
+                Cmd.none
+
+        { state with Rows = newRows }, Cmd.batch [ cmd; Cmd.ofMsg SaveState ]
 
     | LoadRowEntities (row, entityTypeId) ->
         let loadEntities =
@@ -338,15 +358,10 @@ let renderView trigger pos value =
     let display =
         match value with
         | Ok x -> x
-        // | Error x -> string x
-        | _ -> "#ERR"
+        | Error x -> string x
 
     Html.td [
-        prop.className [
-            stylesheet.["cell"]
-            if isError value then
-                stylesheet.["error"]
-        ]
+        prop.className stylesheet.["cell"]
         prop.onClick (fun _ -> trigger (StartEdit(pos)))
         prop.children (Html.text (display))
     ]
@@ -357,7 +372,7 @@ let renderCell trigger pos state =
     if state.Active = Some pos then
         renderEditor trigger pos state (Option.defaultValue "" value)
     else
-        let value =
+        let parsed =
             match value with
             | Some value ->
                 parse value
@@ -365,7 +380,10 @@ let renderCell trigger pos state =
                 |> Result.map string
             | _ -> Ok ""
 
-        renderView trigger pos value
+        parsed
+        // Parser error is discarded here
+        |> Result.mapError (fun _ -> Option.defaultValue "" value)
+        |> renderView trigger pos
 
 
 let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row (entityTypeId: string) =

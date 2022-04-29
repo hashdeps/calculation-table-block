@@ -8,6 +8,12 @@
   overflow: scroll;
 }
 
+.table td,
+.table th {
+  max-width: 15em;
+  width: fit-content !important;
+}
+
 .header {
   width: 1.75em;
   height: 1.25em;
@@ -46,7 +52,6 @@
 .cell {
   min-width: 4em;
   height: 1.25em !important;
-
   border-left: 1px solid #e0e0e0 !important;
   overflow: hidden;
   padding: 0.25em 0.3em !important;
@@ -62,10 +67,6 @@
   display: block;
   width: 100%;
   border: 0;
-}
-
-.error {
-  background-color: rgb(231, 180, 197);
 }
 
 .selected {
