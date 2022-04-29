@@ -28,13 +28,13 @@ let pair a b = (a, b)
 type SerializedGrid = (Position * string) []
 
 
-type RowSelection = RowSelection of row: int * entityTypeId: string option
+type RowSelection = int * string option
+
 
 type SaveState =
-    { cells: SerializedGrid
-      cols: char list
-      rows: RowSelection list
-      loadedEntities: Map<int, BlockProtocolEntity []> }
+    { active: Position option
+      cells: SerializedGrid
+      rows: RowSelection [] }
 
 type TableProps =
     { accountId: string
@@ -64,7 +64,8 @@ type Event =
     | DeserializeSaveState of SaveState
     | ClearBoard
     | SetRowEntityType of row: int * entityTypeId: string
-    | LoadRowEntities of row: int * BlockProtocolEntity []
+    | LoadRowEntities of row: int * entityTypeId: string
+    | SetRowEntities of row: int * BlockProtocolEntity []
 
 type Movement =
     | MoveTo of Position
@@ -91,7 +92,7 @@ let KeyDirection: Map<string, Direction> =
 let update (props: TableProps) msg state =
     match msg with
     | StartEdit (pos) -> { state with Active = Some pos }, Cmd.none
-    
+
     | StopEdit -> { state with Active = None }, Cmd.ofMsg SaveState
 
     | UpdateValue (pos, value) ->
@@ -106,20 +107,20 @@ let update (props: TableProps) msg state =
     | AddRow ->
         let row =
             List.tryLast state.Rows
-            |> Option.map (fun (RowSelection (x, _)) -> x + 1)
+            |> Option.map (fun (x, _) -> x + 1)
             |> Option.defaultValue 1
 
         let newRows =
             state.Rows @ [ RowSelection(row, None) ]
 
-        { state with Rows = newRows }, Cmd.none
+        { state with Rows = newRows }, Cmd.ofMsg SaveState
 
     | RemoveRow n ->
         let rec removeRec rows n sub =
             match rows with
             | [] -> []
-            | RowSelection (x, _) :: xs when x = n -> removeRec xs n true
-            | (RowSelection (x, s) as row) :: xs ->
+            | (x, _) :: xs when x = n -> removeRec xs n true
+            | (x, s) as row :: xs ->
                 (if sub then
                      RowSelection(x - 1, s)
                  else
@@ -145,26 +146,42 @@ let update (props: TableProps) msg state =
         { state with
             Rows = newRows
             Cells = newCells },
-        Cmd.none
+        Cmd.ofMsg SaveState
 
     | SaveState ->
-        let serialized =
-            {| cells = Map.toArray state.Cells
-               cols = state.Cols
-               rows = state.Rows
-               entities = state.loadedEntities |}
+        let serialized: SaveState =
+            { active = state.Active
+              cells = Map.toArray state.Cells
+              rows = state.Rows |> Array.ofList }
 
         state,
         (Cmd.OfPromise.attempt
             (fun serialized ->
                 props.updateEntities.Invoke [|
-                    { accountId = Some(props.accountId)
+                    { accountId = Some props.accountId
                       entityId = props.entityId
-                      data = {| saveState = serialized |} }
+                      data = {| saveState = Some serialized |} }
                 |]
-                |> Promise.map (fun res -> console.log ("saved state", res)))
+                |> Promise.map (fun _ -> console.info ("Saved state")))
             serialized
             (fun _ -> SaveState))
+
+    | DeserializeSaveState saveState ->
+        let cells = Map.ofArray saveState.cells
+
+        let entityAggToLoad =
+            saveState.rows
+            |> Array.filter (fun (n, etid) ->
+                etid.IsSome
+                && not (Map.containsKey n state.loadedEntities))
+            |> Array.map (fun (n, etid) -> Cmd.ofMsg (LoadRowEntities(n, etid.Value)))
+
+
+        { state with
+            Cells = cells
+            Active = saveState.active
+            Rows = List.ofArray saveState.rows },
+        Cmd.batch entityAggToLoad
 
     | DispatchLoadEntityTypes ->
         let cmd =
@@ -184,12 +201,15 @@ let update (props: TableProps) msg state =
     | SetRowEntityType (row, entityTypeId) ->
         let newRows =
             state.Rows
-            |> List.map (fun (RowSelection (x, et)) ->
+            |> List.map (fun (x, et) ->
                 if row = x then
                     RowSelection(x, Some entityTypeId)
                 else
                     RowSelection(x, et))
 
+        { state with Rows = newRows }, Cmd.ofMsg (LoadRowEntities(row, entityTypeId))
+
+    | LoadRowEntities (row, entityTypeId) ->
         let loadEntities =
             Cmd.OfPromise.perform
                 (fun entityTypdId ->
@@ -204,12 +224,12 @@ let update (props: TableProps) msg state =
                               multiFilter = None } }
                     ))
                 entityTypeId
-                (fun x -> LoadRowEntities(row, x.results))
+                (fun x -> SetRowEntities(row, x.results))
 
-        { state with Rows = newRows }, loadEntities
+        state, loadEntities
 
-    | LoadRowEntities (row, entities) ->
-        console.log ("Loaded Ent", entities)
+    | SetRowEntities (row, entities) ->
+        console.info ("Loaded Entities", entities.Length)
 
         { state with
             loadedEntities =
@@ -221,16 +241,6 @@ let update (props: TableProps) msg state =
         Cmd.none
 
     | ClearBoard -> { state with Cells = Map.empty }, Cmd.none
-
-    | DeserializeSaveState saveState ->
-        let cells = Map.ofArray saveState.cells
-
-        { state with
-            Cells = cells
-            Rows = saveState.rows
-            Cols = saveState.cols
-            loadedEntities = saveState.loadedEntities },
-        Cmd.none
 
 // ----------------------------------------------------------------------------
 // RENDERING
@@ -266,7 +276,7 @@ let getMovement (state: State) (direction: Direction) : Movement =
             getPosition position direction
 
         if List.contains col state.Cols
-           && List.exists (fun (RowSelection (x, _)) -> x = row) state.Rows then
+           && List.exists (fun (x, _) -> x = row) state.Rows then
             MoveTo(col, row)
         else
             Invalid
@@ -321,8 +331,8 @@ let renderView trigger pos value =
     let display =
         match value with
         | Ok x -> x
-        // | _ -> "#ERR"
-        | Error x -> string x
+        // | Error x -> string x
+        | _ -> "#ERR"
 
     Html.td [
         prop.className [
@@ -351,7 +361,7 @@ let renderCell trigger pos state =
         renderView trigger pos value
 
 
-let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row =
+let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row (entityTypeId: string) =
     let options =
         et
         |> List.ofArray
@@ -365,8 +375,15 @@ let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row =
 
 
     Html.select [
+        prop.value entityTypeId
         prop.onChange (fun value -> trigger (SetRowEntityType(row, value)))
-        prop.children ((Html.option [ prop.text ("-") ]) :: options)
+        prop.children (
+            (Html.option [
+                prop.value ""
+                prop.text ("-")
+             ])
+            :: options
+        )
     ]
 
 let view state trigger =
@@ -387,6 +404,9 @@ let view state trigger =
         ]
 
     let colHeader n entityTypeId =
+        let entityTypeId =
+            Option.defaultValue "" entityTypeId
+
         Html.th [
             Html.button [
                 prop.className stylesheet.["minus-button"]
@@ -396,7 +416,7 @@ let view state trigger =
             Html.span [
                 prop.className stylesheet.["header"]
                 prop.children [
-                    entityTypesDropdown trigger state.entityTypes n
+                    entityTypesDropdown trigger state.entityTypes n entityTypeId
                     Html.text ($" {n}")
                 ]
             ]
@@ -409,12 +429,12 @@ let view state trigger =
 
     let row cells = Html.tr cells
 
-    let cells (RowSelection (n, entityTypeId)) =
+    let cells (n, entityTypeId) =
         let cells =
             state.Cols
             |> List.map (fun h -> renderCell trigger (h, n) state)
 
-        colHeader n entityTypeId :: cells
+        (colHeader n entityTypeId) :: cells
 
     let rows =
         state.Rows
@@ -455,8 +475,8 @@ let initial (saveState: SaveState option) =
     saveState
     |> Option.map (fun s ->
         Cmd.batch [
-            Cmd.ofMsg (DeserializeSaveState s)
             Cmd.ofMsg DispatchLoadEntityTypes
+            Cmd.ofMsg (DeserializeSaveState s)
         ])
     |> Option.defaultValue (Cmd.ofMsg DispatchLoadEntityTypes)
 
@@ -464,6 +484,6 @@ let initial (saveState: SaveState option) =
 let Spreadsheet (props: TableProps) =
 
     let state, dispatch =
-        React.useElmish (initial props.saveState, (update props), [| props :> obj |])
+        React.useElmish (initial props.saveState, (update props), [| props.saveState :> obj |])
 
     view state dispatch
