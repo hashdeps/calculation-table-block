@@ -73,7 +73,7 @@ type BlockProtocolMultiSort = { field: string; desc: bool option }
 type BlockProtocolAggregateOperationInput =
     { entityTypeId: string option
       entityTypeVersionId: string option
-      pageNumber: int
+      pageNumber: int option
       itemsPerPage: int option
       multiSort: BlockProtocolMultiSort [] option
       multiFilter: BlockProtocolMultiFilter option }

@@ -181,12 +181,12 @@ let update (props: TableProps) msg state =
             Cmd.OfPromise.perform
                 (fun entityTypdId ->
                     props.aggregateEntities.Invoke(
-                        { accountId = Some props.entityId
+                        { accountId = Some props.accountId
                           operation =
                             { entityTypeId = Some entityTypdId
                               entityTypeVersionId = None
-                              pageNumber = 1
-                              itemsPerPage = None
+                              pageNumber = None
+                              itemsPerPage = Some 100
                               multiSort = None
                               multiFilter = None } }
                     ))
@@ -304,8 +304,8 @@ let renderView trigger pos value =
     let display =
         match value with
         | Ok x -> x
-        | _ -> "#ERR"
-    // | Error x -> string x
+        // | _ -> "#ERR"
+        | Error x -> string x
 
     Html.td [
         prop.className [

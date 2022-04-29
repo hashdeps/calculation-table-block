@@ -178,11 +178,11 @@ let functionCall =
     |>> FunctionCall
 
 let termAux =
-    functionCall <|> number <|> reference <|> paren
+    reference <|> functionCall <|> number <|> paren
 
 let ops = tableParser termAux operators
 
-termSetter.Value <- functionCall
+termSetter.Value <- ops
 
 let formula = wsIgnore (pchar '=') >>. term
 let equation = wsIgnore (formula <|> number)

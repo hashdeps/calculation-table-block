@@ -18,8 +18,9 @@ let toOption (source: Result<'T, 'Error>) =
 // Aggregators
 // ----------------------------------------------------------------------------
 
-let env =
+let env: Map<string, (float [] -> float)> =
     Map.ofList [
+        ("count", Array.length >> float)
         ("sum", Array.sum)
         ("avg",
          (fun x ->
@@ -48,11 +49,17 @@ let binaryFuncs op (l: float) (r: float) =
 // | _ -> failwith "Unimplemented"
 
 
-let rec evaluateR visited (cells: Map<Position, string>) (ents: BlockProtocolEntity []) expr =
+let rec evaluate visited (cells: Map<Position, string>) (ents: Map<int, BlockProtocolEntity []>) expr calculateAtPos =
     match expr with
     | Number num -> Some num
 
     | FunctionCall (func, jsonPath) ->
+
+        let ents =
+            Map.tryFind (snd calculateAtPos) ents
+            |> Option.defaultValue [||]
+
+        console.log ("count pls", func, jsonPath, calculateAtPos, ents)
 
         let json =
             ents
@@ -61,23 +68,22 @@ let rec evaluateR visited (cells: Map<Position, string>) (ents: BlockProtocolEnt
                 if x :? float then
                     Some(x :?> float)
                 else
-                    None)
+                    // This allows counting. Not the best way to do so, though!
+                    Some(0.0))
 
             |> Array.choose id
-
-        console.log ("Loaded Ent", json)
 
         Map.tryFind func env
         |> Option.map (fun f -> f json)
 
     | Unary (e, op) ->
-        evaluateR visited cells ents e
+        evaluate visited cells ents e calculateAtPos
         <*> (fun e -> unaryFuncs op e)
 
     | Binary (l, op, r) ->
-        evaluateR visited cells ents l
+        evaluate visited cells ents l calculateAtPos
         >>= (fun l ->
-            evaluateR visited cells ents r
+            evaluate visited cells ents r calculateAtPos
             <*> (fun r -> binaryFuncs op l r))
 
     | Reference pos when Set.contains pos visited -> None
@@ -85,17 +91,18 @@ let rec evaluateR visited (cells: Map<Position, string>) (ents: BlockProtocolEnt
     | Reference pos ->
         cells.TryFind pos
         |> Option.bind (fun value ->
-            parse value
+            let parsed = parse value
+            console.log ("Loaded Ent", pos, parsed)
+
+            parsed
             |> toOption
-            |> Option.bind (fun (parsed, _, _) -> evaluateR (Set.add pos visited) cells ents parsed))
+            |> Option.bind (fun (parsed, _, _) -> evaluate (Set.add pos visited) cells ents parsed pos))
 
-let evaluate visited (cells: Map<Position, string>) (ents: Map<int, BlockProtocolEntity []>) expr ((_, r): Position) =
+// let evaluate visited (cells: Map<Position, string>) (ents: ) expr (pos: Position) =
 
-    let ents =
-        Map.tryFind r ents |> Option.defaultValue [||]
 
-    match expr with
-    | FunctionCall (f, j) -> console.log ("a", (f, j))
-    | _ -> ()
+//     match expr with
+//     | FunctionCall (f, j) -> console.log ("a", (f, j))
+//     | _ -> ()
 
-    evaluateR visited cells ents expr
+//     evaluateR visited cells ents expr pos
