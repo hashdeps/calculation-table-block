@@ -99,15 +99,14 @@ module.exports = {
         new WebpackAssetsManifest({
           output: "manifest.json",
         }),
-        new StatsPlugin(),
+        new StatsPlugin("dist/out/block-metadata.json"),
       ])
     : commonPlugins.concat([
-        new StatsPlugin(),
-
         new HtmlWebpackPlugin({
           filename: "index.html",
           template: resolve(CONFIG.indexHtmlTemplate),
         }),
+        new StatsPlugin("dist/build/block-metadata.json"),
       ]),
   resolve: {
     // See https://github.com/fable-compiler/Fable/issues/1490

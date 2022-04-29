@@ -25,6 +25,10 @@ const variants = fs.existsSync(variantsJsonPath)
   : undefined;
 
 class StatsPlugin {
+  constructor(outputTo) {
+    this.outputTo = outputTo;
+  }
+
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
       const main = Object.keys(stats.compilation.assets).find(
@@ -39,16 +43,12 @@ class StatsPlugin {
         license,
         externals: peerDependencies,
         schema: "block-schema.json",
-        source: main,
+        source: main ?? "Dev.fs.js",
         variants,
         ...blockprotocol,
       };
 
-      return writeFile(
-        "dist/out/block-metadata.json",
-        beautify(blockMetadata),
-        "utf8"
-      );
+      return writeFile(this.outputTo, beautify(blockMetadata), "utf8");
     });
   }
 }

@@ -113,7 +113,11 @@ let update (props: TableProps) msg state =
         let newRows =
             state.Rows @ [ RowSelection(row, None) ]
 
-        { state with Rows = newRows }, Cmd.ofMsg SaveState
+        { state with Rows = newRows },
+        Cmd.batch [
+            Cmd.ofMsg SaveState
+            Cmd.ofMsg StopEdit
+        ]
 
     | RemoveRow n ->
         let rec removeRec rows n sub =
@@ -146,7 +150,10 @@ let update (props: TableProps) msg state =
         { state with
             Rows = newRows
             Cells = newCells },
-        Cmd.ofMsg SaveState
+        Cmd.batch [
+            Cmd.ofMsg SaveState
+            Cmd.ofMsg StopEdit
+        ]
 
     | SaveState ->
         let serialized: SaveState =
@@ -240,7 +247,7 @@ let update (props: TableProps) msg state =
                     state.loadedEntities },
         Cmd.none
 
-    | ClearBoard -> { state with Cells = Map.empty }, Cmd.none
+    | ClearBoard -> { state with Cells = Map.empty }, Cmd.ofMsg SaveState
 
 // ----------------------------------------------------------------------------
 // RENDERING
@@ -375,6 +382,7 @@ let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row (entityT
 
 
     Html.select [
+        prop.className stylesheet.["dropdown"]
         prop.value entityTypeId
         prop.onChange (fun value -> trigger (SetRowEntityType(row, value)))
         prop.children (
@@ -445,6 +453,7 @@ let view state trigger =
         @ [ Html.tr [
                 Html.td [
                     Html.button [
+                        prop.className stylesheet.["add-row"]
                         prop.onClick (fun _ -> trigger AddRow)
                         prop.text "add row"
                     ]
