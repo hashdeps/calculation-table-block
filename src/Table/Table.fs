@@ -20,7 +20,21 @@ let isError =
 let flip f a b = f b a
 let pair a b = (a, b)
 
+
+// ----------------------------------------------------------------------------
+// DOMAIN MODEL
+// ----------------------------------------------------------------------------
+
 type SerializedGrid = (Position * string) []
+
+
+type RowSelection = RowSelection of row: int * entityTypeId: string option
+
+type SaveState =
+    { cells: SerializedGrid
+      cols: char list
+      rows: RowSelection list
+      loadedEntities: Map<int, BlockProtocolEntity []> }
 
 type TableProps =
     { accountId: string
@@ -28,12 +42,15 @@ type TableProps =
       aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction
       aggregateEntities: BlockProtocolAggregateEntitiesFunction
       updateEntities: BlockProtocolUpdateEntitiesFunction
-      cells: SerializedGrid option }
+      saveState: SaveState option }
 
-// ----------------------------------------------------------------------------
-// DOMAIN MODEL
-// ----------------------------------------------------------------------------
-
+type State =
+    { Rows: RowSelection list
+      Active: Position option
+      Cols: char list
+      Cells: Map<Position, string>
+      entityTypes: BlockProtocolEntityType []
+      loadedEntities: Map<int, BlockProtocolEntity []> }
 
 type Event =
     | UpdateValue of Position * string
@@ -44,19 +61,10 @@ type Event =
     | RemoveRow of row: int
     | DispatchLoadEntityTypes
     | LoadEntityTypes of BlockProtocolEntityType []
-    | DeserializeGrid of SerializedGrid * save: bool
+    | DeserializeSaveState of SaveState
+    | ClearBoard
     | SetRowEntityType of row: int * entityTypeId: string
     | LoadRowEntities of row: int * BlockProtocolEntity []
-
-type RowSelection = RowSelection of row: int * entityTypeId: string option
-
-type State =
-    { Rows: RowSelection list
-      Active: Position option
-      Cols: char list
-      Cells: Map<Position, string>
-      entityTypes: BlockProtocolEntityType []
-      loadedEntities: Map<int, BlockProtocolEntity []> }
 
 type Movement =
     | MoveTo of Position
@@ -83,7 +91,8 @@ let KeyDirection: Map<string, Direction> =
 let update (props: TableProps) msg state =
     match msg with
     | StartEdit (pos) -> { state with Active = Some pos }, Cmd.none
-    | StopEdit -> { state with Active = None }, Cmd.none
+    
+    | StopEdit -> { state with Active = None }, Cmd.ofMsg SaveState
 
     | UpdateValue (pos, value) ->
         let newCells =
@@ -139,15 +148,19 @@ let update (props: TableProps) msg state =
         Cmd.none
 
     | SaveState ->
-        let serialized = Map.toArray state.Cells
+        let serialized =
+            {| cells = Map.toArray state.Cells
+               cols = state.Cols
+               rows = state.Rows
+               entities = state.loadedEntities |}
 
         state,
         (Cmd.OfPromise.attempt
-            (fun cells ->
+            (fun serialized ->
                 props.updateEntities.Invoke [|
                     { accountId = Some(props.accountId)
                       entityId = props.entityId
-                      data = {| cells = cells |} }
+                      data = {| saveState = serialized |} }
                 |]
                 |> Promise.map (fun res -> console.log ("saved state", res)))
             serialized
@@ -207,14 +220,18 @@ let update (props: TableProps) msg state =
                     state.loadedEntities },
         Cmd.none
 
-    | DeserializeGrid (grid, save) ->
-        let cells = Map.ofArray grid
+    | ClearBoard -> { state with Cells = Map.empty }, Cmd.none
 
-        { state with Cells = cells },
-        if save then
-            Cmd.ofMsg SaveState
-        else
-            Cmd.none
+    | DeserializeSaveState saveState ->
+        let cells = Map.ofArray saveState.cells
+
+        { state with
+            Cells = cells
+            Rows = saveState.rows
+            Cols = saveState.cols
+            loadedEntities = saveState.loadedEntities },
+        Cmd.none
+
 // ----------------------------------------------------------------------------
 // RENDERING
 // ----------------------------------------------------------------------------
@@ -359,7 +376,7 @@ let view state trigger =
             Html.button [
                 prop.className stylesheet.["clear-button"]
                 prop.innerHtml "&times;"
-                prop.onClick (fun _ -> trigger (DeserializeGrid(Array.empty, true)))
+                prop.onClick (fun _ -> trigger (ClearBoard))
             ]
         ]
 
@@ -425,7 +442,7 @@ let view state trigger =
         )
     ]
 
-let initial cells =
+let initial (saveState: SaveState option) =
     { Cols = [ 'A' .. 'E' ]
       Rows =
         [ 1..3 ]
@@ -434,10 +451,11 @@ let initial cells =
       Cells = Map.empty
       entityTypes = [||]
       loadedEntities = Map.empty },
-    cells
-    |> Option.map (fun c ->
+
+    saveState
+    |> Option.map (fun s ->
         Cmd.batch [
-            Cmd.ofMsg (DeserializeGrid(c, false))
+            Cmd.ofMsg (DeserializeSaveState s)
             Cmd.ofMsg DispatchLoadEntityTypes
         ])
     |> Option.defaultValue (Cmd.ofMsg DispatchLoadEntityTypes)
@@ -446,6 +464,6 @@ let initial cells =
 let Spreadsheet (props: TableProps) =
 
     let state, dispatch =
-        React.useElmish (initial props.cells, (update props), [| props :> obj |])
+        React.useElmish (initial props.saveState, (update props), [| props :> obj |])
 
     view state dispatch

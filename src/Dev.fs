@@ -19,7 +19,7 @@ let App () =
               updateEntities = null
               aggregateEntityTypes = null
               aggregateEntities = null
-              cells = None })
+              saveState = None })
     ]
 
 ReactDOM.render (App(), node)

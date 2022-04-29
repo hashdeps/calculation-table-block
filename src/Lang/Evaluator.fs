@@ -59,8 +59,6 @@ let rec evaluate visited (cells: Map<Position, string>) (ents: Map<int, BlockPro
             Map.tryFind (snd calculateAtPos) ents
             |> Option.defaultValue [||]
 
-        console.log ("count pls", func, jsonPath, calculateAtPos, ents)
-
         let json =
             ents
             |> Array.map (fun x -> x.Item(jsonPath))
@@ -92,17 +90,7 @@ let rec evaluate visited (cells: Map<Position, string>) (ents: Map<int, BlockPro
         cells.TryFind pos
         |> Option.bind (fun value ->
             let parsed = parse value
-            console.log ("Loaded Ent", pos, parsed)
 
             parsed
             |> toOption
             |> Option.bind (fun (parsed, _, _) -> evaluate (Set.add pos visited) cells ents parsed pos))
-
-// let evaluate visited (cells: Map<Position, string>) (ents: ) expr (pos: Position) =
-
-
-//     match expr with
-//     | FunctionCall (f, j) -> console.log ("a", (f, j))
-//     | _ -> ()
-
-//     evaluateR visited cells ents expr pos

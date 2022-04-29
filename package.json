@@ -1,14 +1,9 @@
 {
   "blockprotocol": {
-    "displayName": "Divider",
-    "icon": "public/divider.svg",
-    "image": "public/preview.svg",
-    "examples": [
-      {
-        "color": "black",
-        "height": "2px"
-      }
-    ],
+    "displayName": "Calculation table",
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.svg",
+    "examples": [],
     "protocol": "0.1"
   },
   "private": true,
