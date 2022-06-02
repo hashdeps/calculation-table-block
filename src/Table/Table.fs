@@ -167,6 +167,8 @@ let update (props: TableProps) msg state =
         state,
         (Cmd.OfPromise.attempt
             (fun serialized ->
+                console.log (serialized)
+
                 props.updateEntities.Invoke [|
                     { accountId = Some props.accountId
                       entityId = props.entityId
@@ -509,6 +511,7 @@ let initial (saveState: SaveState option) =
 
 [<ReactComponent>]
 let Spreadsheet (props: TableProps) =
+    console.log (props)
 
     let state, dispatch =
         React.useElmish (initial props.saveState, (update props), [| props.saveState :> obj |])

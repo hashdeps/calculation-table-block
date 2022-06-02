@@ -6,6 +6,7 @@
         <None Include="index.html" />
         <Compile Include="Extensions.fs" />
         <Compile Include="bp/Core.fs" />
+        <Compile Include="bp/Graph.fs" />
         <Compile Include="Lang/Jsonpath.fs" />
         <Compile Include="Lang/Parsec.fs" />
         <Compile Include="Lang/Parser.fs" />

@@ -192,3 +192,30 @@ type BlockProtocolProps =
         abstract entityTypeVersionId: string option
         abstract entityTypes: BlockProtocolEntityType [] option
     end
+
+
+module Next =
+
+    type BlockProtocolSource =
+        | Block
+        | Embedder
+
+    type BlockProtocolMessageDetail<'payload, 'error> =
+        { requestId: System.Guid
+          name: string
+          service: string
+          source: BlockProtocolSource
+          payload: 'payload option
+          errors: ('error list) option }
+
+    type BlockProtocolMessage<'payload, 'error> =
+        { detail: BlockProtocolMessageDetail<'payload, 'error> }
+
+    let BlockProtocolEventType =
+        "blockprotocolmessage"
+
+    let BlockProtocolCoreMessages =
+        {| InitRequest = "InitRequest"
+           InitResponse = "initResponse" |}
+
+    type BlockProtocolCorePayload = { services: Map<string, obj> }
