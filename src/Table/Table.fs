@@ -1,10 +1,13 @@
 module Table.Table
 
-open Fable.Core.JsInterop
+// open Fable.Core.JsInterop
+open Fable.Core
 open BP.Core
+open BP.Graph
 open Elmish
 open Feliz
 open Feliz.UseElmish
+
 
 open Lang.Parser
 open Lang.Evaluator
@@ -39,21 +42,28 @@ type SaveState =
       cells: SerializedGrid
       rows: RowSelection [] }
 
-type TableProps =
-    { accountId: string
-      entityId: string
-      aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction
-      aggregateEntities: BlockProtocolAggregateEntitiesFunction
-      updateEntities: BlockProtocolUpdateEntitiesFunction
-      saveState: SaveState option }
+// type TableProps =
+//     { accountId: string
+//       entityId: string
+//       aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction
+//       aggregateEntities: BlockProtocolAggregateEntitiesFunction
+//       updateEntities: BlockProtocolUpdateEntitiesFunction
+//       saveState: SaveState option }
+
+type BlockProtocolSideEffects =
+    { blockAccountId: System.Guid
+      blockEntityId: System.Guid
+      updateEntities: BlockProtocolMessage<UpdateEntities<SaveState>> -> JS.Promise<UpdateEntitiesResponse<SaveState>>
+      aggregateEntityTypes: BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
+      aggregateEntities: BlockProtocolMessage<AggregateEntities> -> JS.Promise<AggregateEntitiesResponse<unit>> }
 
 type State =
-    { Rows: RowSelection list
-      Active: Position option
-      Cols: char list
+    { Cols: char list
+      Rows: RowSelection list
       Cells: Map<Position, string>
-      entityTypes: BlockProtocolEntityType []
-      loadedEntities: Map<int, BlockProtocolEntity []> }
+      Active: Position option
+      entityTypes: EntityType<unit> []
+      loadedEntities: Map<int, Entity<unit> []> }
 
 type Event =
     | UpdateValue of Position * string
@@ -63,12 +73,12 @@ type Event =
     | AddRow
     | RemoveRow of row: int
     | DispatchLoadEntityTypes
-    | LoadEntityTypes of BlockProtocolEntityType []
+    | LoadEntityTypes of EntityType<unit> []
     | DeserializeSaveState of SaveState
     | ClearBoard
     | SetRowEntityType of row: int * entityTypeId: string
     | LoadRowEntities of row: int * entityTypeId: string
-    | SetRowEntities of row: int * BlockProtocolEntity []
+    | SetRowEntities of row: int * Entity<unit> []
 
 type Movement =
     | MoveTo of Position
@@ -92,7 +102,7 @@ let KeyDirection: Map<string, Direction> =
 // EVENT HANDLING
 // ----------------------------------------------------------------------------
 
-let update (props: TableProps) msg state =
+let update (sideEffect: BlockProtocolSideEffects) msg state =
     match msg with
     | StartEdit (pos) -> { state with Active = Some pos }, Cmd.none
 
@@ -169,11 +179,9 @@ let update (props: TableProps) msg state =
             (fun serialized ->
                 console.log (serialized)
 
-                props.updateEntities.Invoke [|
-                    { accountId = Some props.accountId
-                      entityId = props.entityId
-                      data = {| saveState = Some serialized |} }
-                |]
+
+                updateEntity sideEffect.blockEntityId serialized
+                |> sideEffect.updateEntities
                 |> Promise.map (fun _ -> console.info ("Saved state")))
             serialized
             (fun _ -> SaveState))
@@ -204,10 +212,8 @@ let update (props: TableProps) msg state =
         let cmd =
             Cmd.OfPromise.perform
                 (fun _ ->
-                    props.aggregateEntityTypes.Invoke(
-                        { accountId = Some(props.accountId)
-                          operation = None }
-                    ))
+                    aggregateAllEntityTypes ()
+                    |> sideEffect.aggregateEntityTypes)
                 null
                 (fun et -> LoadEntityTypes et.results)
 
@@ -242,16 +248,8 @@ let update (props: TableProps) msg state =
         let loadEntities =
             Cmd.OfPromise.perform
                 (fun entityTypdId ->
-                    props.aggregateEntities.Invoke(
-                        { accountId = Some props.accountId
-                          operation =
-                            { entityTypeId = Some entityTypdId
-                              entityTypeVersionId = None
-                              pageNumber = None
-                              itemsPerPage = Some 100
-                              multiSort = None
-                              multiFilter = None } }
-                    ))
+                    aggregateAllEntitiesByType entityTypdId sideEffect.blockAccountId
+                    |> sideEffect.aggregateEntities)
                 entityTypeId
                 (fun x -> SetRowEntities(row, x.results))
 
@@ -388,7 +386,7 @@ let renderCell trigger pos state =
         |> renderView trigger pos
 
 
-let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row (entityTypeId: string) =
+let entityTypesDropdown trigger (et: EntityType<'a> array) row (entityTypeId: string) =
     let options =
         et
         |> List.ofArray
@@ -397,7 +395,7 @@ let entityTypesDropdown trigger (et: BlockProtocolEntityType array) row (entityT
 
             Html.option [
                 prop.value (x.entityTypeId)
-                prop.text (x.title)
+                prop.text (x.entityTypeId)
             ])
 
 
@@ -510,10 +508,10 @@ let initial (saveState: SaveState option) =
     |> Option.defaultValue (Cmd.ofMsg DispatchLoadEntityTypes)
 
 [<ReactComponent>]
-let Spreadsheet (props: TableProps) =
+let Spreadsheet (props: BlockProtocolSideEffects) =
     console.log (props)
-
+    // TODO: INIT PAYLOAD
     let state, dispatch =
-        React.useElmish (initial props.saveState, (update props), [| props.saveState :> obj |])
+        React.useElmish (initial None, (update props), [||])
 
     view state dispatch

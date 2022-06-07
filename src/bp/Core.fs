@@ -1,221 +1,142 @@
 module BP.Core
 
 open System
+open System.Collections.Generic
+open Browser
+open Browser.Types
 open Fable.Core
 open Fable.Core.JS
-
-type UnknownRecord = Map<string, obj>
-
-[<AllowNullLiteral>]
-type BlockProtocolEntity =
-    abstract accountId: string option
-    abstract entityId: string
-    abstract entityTypeId: string option
-
-    [<Emit "$0[$1]{{=$2}}">]
-    abstract Item: key: string -> obj with get
-
-
-[<AllowNullLiteral>]
-type BlockProtocolEntityType =
-    abstract accountId: string option with get, set
-    abstract entityTypeId: string with get, set
-    abstract ``$id``: string with get, set
-    abstract ``$schema``: string with get, set
-    abstract title: string with get, set
-    abstract ``type``: string with get, set
-
-    [<Emit "$0[$1]{{=$2}}">]
-    abstract Item: key: string -> obj with get, set
-
-
-type BlockProtocolCreateEntitiesAction =
-    { entityTypeId: string
-      entityTypeVersionId: string option
-      data: UnknownRecord
-      accountId: string option }
-// abstract links: DistributedOmit listBlockProtocolCreateLinksAction, BlockProtocolCreateEntitiesActionLinksDistributedOmitArrayDistributedOmit>> option with get, set
-
-
-type BlockProtocolGetEntitiesAction =
-    { accountId: string option
-      entityId: string
-      entityTypeId: string option }
-
-
-type BlockProtocolUpdateEntitiesAction =
-    { entityId: string
-      accountId: string option
-      data: obj }
-
-type BlockProtocolDeleteEntitiesAction =
-    { accountId: string option
-      entityId: string
-      entityTypeId: string option }
+open Fable.Core.JsInterop
 
 
 [<StringEnum>]
-type BlockProtocolMultiFilterOperatorType =
-    | AND
-    | OR
+type BlockProtocolSource =
+    | Block
+    | Embedder
 
-type BlockProtocolMultiFilter =
-    { field: string
-      operator: BlockProtocolMultiFilterOperatorType
-      value: string }
+type MessageError =
+    { code: string
+      message: string
+      extensions: obj option }
 
-type BlockProtocolMultiFilters =
-    { filters: BlockProtocolMultiFilterOperatorType []
-      operator: BlockProtocolMultiFilterOperatorType }
+type BlockProtocolMessage<'payload> =
+    { requestId: Guid
+      messageName: string
+      respondedToBy: string option
+      service: string
+      source: BlockProtocolSource
+      data: 'payload option
+      errors: (MessageError []) option }
 
-type BlockProtocolMultiSort = { field: string; desc: bool option }
+let createBPClientDetail requestId messageName service respondedToBy data =
+    { requestId = defaultArg requestId (Guid.NewGuid())
+      messageName = messageName
+      respondedToBy = respondedToBy
+      service = service
+      source = BlockProtocolSource.Block
+      data = data
+      errors = None }
 
-type BlockProtocolAggregateOperationInput =
-    { entityTypeId: string option
-      entityTypeVersionId: string option
-      pageNumber: int option
-      itemsPerPage: int option
-      multiSort: BlockProtocolMultiSort [] option
-      multiFilter: BlockProtocolMultiFilter option }
+let BlockProtocolEventType =
+    "blockprotocolmessage"
 
-type BlockProtocolAggregateEntitiesPayload =
-    { operation: BlockProtocolAggregateOperationInput
-      accountId: string option }
+let BlockProtocolInitMessage () : BlockProtocolMessage<unit> =
+    { requestId = Guid.NewGuid()
+      messageName = "init"
+      respondedToBy = Some "initResponse"
+      service = "core"
+      source = BlockProtocolSource.Block
+      data = None
+      errors = None
 
-[<AllowNullLiteral>]
-type BlockProtocolAggregateEntitiesResult<'T> =
-    abstract results: 'T [] with get, set
-    abstract operation: obj with get, set
+    }
 
+type BlockProtocolCorePayload = { services: Map<string, obj> }
 
-[<AllowNullLiteral>]
-type BlockProtocolCreateEntitiesFunction =
-    [<Emit "$0($1...)">]
-    abstract Invoke: actions: BlockProtocolCreateEntitiesAction [] -> Promise<BlockProtocolEntity []>
+type ResponseSettler =
+    { expectedResponseName: string
+      resolve: (obj -> unit)
+      reject: (obj -> unit) }
 
-[<AllowNullLiteral>]
-type BlockProtocolGetEntitiesFunction =
-    [<Emit "$0($1...)">]
-    abstract Invoke: actions: BlockProtocolGetEntitiesAction [] -> Promise<BlockProtocolEntity []>
+type ResponseSettlersMap() =
+    let mutable map =
+        new Dictionary<Guid, ResponseSettler>()
 
-[<AllowNullLiteral>]
-type BlockProtocolUpdateEntitiesFunction =
-    [<Emit "$0($1...)">]
-    abstract Invoke: actions: BlockProtocolUpdateEntitiesAction [] -> Promise<BlockProtocolEntity []>
+    member _.Set reqId settler = map.Add(reqId, settler)
 
-[<AllowNullLiteral>]
-type BlockProtocolDeleteEntitiesFunction =
-    [<Emit "$0($1...)">]
-    abstract Invoke: actions: BlockProtocolDeleteEntitiesAction [] -> Promise<bool []>
+    member _.Get reqId =
+        match map.TryGetValue reqId with
+        | true, v -> Some v
+        | _ -> None
 
-[<AllowNullLiteral>]
-type BlockProtocolAggregateEntitiesFunction =
-    [<Emit "$0($1...)">]
-    abstract Invoke:
-        payload: BlockProtocolAggregateEntitiesPayload ->
-            Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>>
-
-
-type BlockProtocolAggregateEntityTypesOperationInput =
-    { pageNumber: int
-      itemsPerPage: int option
-      multiSort: BlockProtocolMultiSort [] option
-      multiFilter: BlockProtocolMultiFilter option }
+    member _.Remove reqId = map.Remove(reqId)
 
 
-type BlockProtocolAggregateEntityTypesPayload =
-    { accountId: string option
-      operation: BlockProtocolAggregateEntityTypesOperationInput option }
 
-[<AllowNullLiteral>]
-type BlockProtocolAggregateEntityTypesFunction =
-    [<Emit "$0($1...)">]
-    abstract Invoke:
-        payload: BlockProtocolAggregateEntityTypesPayload ->
-            Promise<BlockProtocolAggregateEntitiesResult<BlockProtocolEntityType>>
+let createBPEvent (detail: BlockProtocolMessage<'a>) =
+    CustomEvent.Create(
+        BlockProtocolEventType,
+        jsOptions<CustomEventInit> (fun o ->
+            o.bubbles <- true
+            o.composed <- true
+            o.detail <- detail)
+    )
 
-// type [<AllowNullLiteral>] BlockProtocolGetLinkAction =
-//     abstract linkId: string with get, set
-// type [<AllowNullLiteral>] BlockProtocolGetLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolGetLinkAction list -> Promise<BlockProtocolLink list>
+type DispatchResponse<'a, 'b> =
+    | WithResponse of Promise<'a>
+    | OneWay of BlockProtocolMessage<'b>
 
-// type [<AllowNullLiteral>] BlockProtocolCreateLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolCreateLinksAction list -> Promise<BlockProtocolLink list>
+let dispatchBPEvent<'a, 'b>
+    (requestSettlerMap: ResponseSettlersMap)
+    (blockMessageRoot: HTMLElement)
+    (detail: BlockProtocolMessage<'b>)
+    : DispatchResponse<'a, 'b> =
+    let bpEvent = createBPEvent detail
 
-// type [<AllowNullLiteral>] BlockProtocolUpdateLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolUpdateLinksAction list -> Promise<BlockProtocolLink list>
+    let _dispatched =
+        blockMessageRoot.dispatchEvent bpEvent
 
-// type [<AllowNullLiteral>] BlockProtocolDeleteLinksFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolDeleteLinksAction list -> Promise<bool list>
+    if detail.respondedToBy.IsSome then
+        let mutable resolve = None
+        let mutable reject = None
 
-// type [<AllowNullLiteral>] BlockProtocolCreateEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolCreateEntityTypesAction list -> Promise<BlockProtocolEntityType list>
+        let promise: Promise<'a> =
+            JS.Constructors.Promise.Create (fun res rej ->
+                resolve <- Some res
+                reject <- Some rej)
 
-// type [<AllowNullLiteral>] BlockProtocolGetEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolGetEntityTypesAction list -> Promise<BlockProtocolEntityType list>
+        requestSettlerMap.Set
+            (detail.requestId)
+            { expectedResponseName = detail.respondedToBy.Value
+              resolve = resolve.Value
+              reject = reject.Value }
 
-// type [<AllowNullLiteral>] BlockProtocolUpdateEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolUpdateEntityTypesAction list -> Promise<BlockProtocolEntityType list>
+        WithResponse promise
+    else
+        OneWay detail
 
-// type [<AllowNullLiteral>] BlockProtocolDeleteEntityTypesFunction =
-//     [<Emit "$0($1...)">] abstract Invoke: actions: BlockProtocolDeleteEntityTypesAction list -> Promise<bool list>
+let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRoot: HTMLElement) =
+    let handler (event: Event) =
+        if event :? CustomEvent then
+            let bpMessage =
+                (event :?> CustomEvent).detail :?> BlockProtocolMessage<obj>
 
-type BlockProtocolFunction = obj
+            let settlerForMessage =
+                requestSettlerMap.Get bpMessage.requestId
 
-[<AllowNullLiteral>]
-type BlockProtocolFunctions =
-    abstract createEntities: BlockProtocolCreateEntitiesFunction option with get, set
-    abstract getEntities: BlockProtocolGetEntitiesFunction option with get, set
-    abstract deleteEntities: BlockProtocolDeleteEntitiesFunction option with get, set
-    abstract updateEntities: BlockProtocolUpdateEntitiesFunction option with get, set
-    abstract aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction option with get, set
-    abstract aggregateEntities: BlockProtocolAggregateEntitiesFunction option with get, set
-// abstract createEntityTypes: BlockProtocolCreateEntityTypesFunction option with get, set
-// abstract getEntityTypes: BlockProtocolGetEntityTypesFunction option with get, set
-// abstract updateEntityTypes: BlockProtocolUpdateEntityTypesFunction option with get, set
-// abstract deleteEntityTypes: BlockProtocolDeleteEntityTypesFunction option with get, set
-// abstract getLinks: BlockProtocolGetLinksFunction option with get, set
-// abstract createLinks: BlockProtocolCreateLinksFunction option with get, set
-// abstract deleteLinks: BlockProtocolDeleteLinksFunction option with get, set
-// abstract updateLinks: BlockProtocolUpdateLinksFunction option with get, set
-// abstract uploadFile: BlockProtocolUploadFileFunction option with get, set
+            if settlerForMessage.IsSome then
+                let settler = settlerForMessage.Value
 
+                if settler.expectedResponseName = bpMessage.messageName then
+                    settler.resolve
+                        {| data = bpMessage.data
+                           errors = bpMessage.errors |}
+                else
+                    settler.reject ("error.")
 
-[<AllowNullLiteral>]
-type BlockProtocolProps =
-    interface
-        inherit BlockProtocolFunctions
+                requestSettlerMap.Remove bpMessage.requestId
+                |> ignore
 
-        abstract accountId: string option
-        abstract entityId: string
-        abstract entityTypeId: string option
-        abstract entityTypeVersionId: string option
-        abstract entityTypes: BlockProtocolEntityType [] option
-    end
+            console.log (bpMessage.messageName)
 
-
-module Next =
-
-    type BlockProtocolSource =
-        | Block
-        | Embedder
-
-    type BlockProtocolMessageDetail<'payload, 'error> =
-        { requestId: System.Guid
-          name: string
-          service: string
-          source: BlockProtocolSource
-          payload: 'payload option
-          errors: ('error list) option }
-
-    type BlockProtocolMessage<'payload, 'error> =
-        { detail: BlockProtocolMessageDetail<'payload, 'error> }
-
-    let BlockProtocolEventType =
-        "blockprotocolmessage"
-
-    let BlockProtocolCoreMessages =
-        {| InitRequest = "InitRequest"
-           InitResponse = "initResponse" |}
-
-    type BlockProtocolCorePayload = { services: Map<string, obj> }
+    blockMessageRoot.addEventListener (BlockProtocolEventType, handler)
