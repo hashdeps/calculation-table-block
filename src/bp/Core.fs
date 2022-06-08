@@ -20,7 +20,7 @@ type MessageError =
       extensions: obj option }
 
 type BlockProtocolMessage<'payload> =
-    { requestId: Guid
+    { requestId: string
       messageName: string
       respondedToBy: string option
       service: string
@@ -29,7 +29,7 @@ type BlockProtocolMessage<'payload> =
       errors: (MessageError []) option }
 
 let createBPClientDetail requestId messageName service respondedToBy data =
-    { requestId = defaultArg requestId (Guid.NewGuid())
+    { requestId = defaultArg requestId (Guid.NewGuid().ToString())
       messageName = messageName
       respondedToBy = respondedToBy
       service = service
@@ -41,7 +41,7 @@ let BlockProtocolEventType =
     "blockprotocolmessage"
 
 let BlockProtocolInitMessage () : BlockProtocolMessage<unit> =
-    { requestId = Guid.NewGuid()
+    { requestId = Guid.NewGuid().ToString()
       messageName = "init"
       respondedToBy = Some "initResponse"
       service = "core"
@@ -60,7 +60,7 @@ type ResponseSettler =
 
 type ResponseSettlersMap() =
     let mutable map =
-        new Dictionary<Guid, ResponseSettler>()
+        new Dictionary<string, ResponseSettler>()
 
     member _.Set reqId settler = map.Add(reqId, settler)
 
@@ -121,22 +121,23 @@ let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRo
             let bpMessage =
                 (event :?> CustomEvent).detail :?> BlockProtocolMessage<obj>
 
-            let settlerForMessage =
-                requestSettlerMap.Get bpMessage.requestId
+            if bpMessage.source = Embedder then
+                let settlerForMessage =
+                    requestSettlerMap.Get bpMessage.requestId
 
-            if settlerForMessage.IsSome then
-                let settler = settlerForMessage.Value
+                if settlerForMessage.IsSome then
+                    let settler = settlerForMessage.Value
 
-                if settler.expectedResponseName = bpMessage.messageName then
-                    settler.resolve
-                        {| data = bpMessage.data
-                           errors = bpMessage.errors |}
-                else
-                    settler.reject ("error.")
+                    if settler.expectedResponseName = bpMessage.messageName then
+                        settler.resolve
+                            {| data = bpMessage.data
+                               errors = bpMessage.errors |}
+                    else
+                        settler.reject ("error.")
 
-                requestSettlerMap.Remove bpMessage.requestId
-                |> ignore
+                    requestSettlerMap.Remove bpMessage.requestId
+                    |> ignore
 
-            console.log (bpMessage.messageName)
+                console.log (bpMessage.messageName)
 
     blockMessageRoot.addEventListener (BlockProtocolEventType, handler)

@@ -3,6 +3,7 @@
 
 open Lang.Parser
 
+parse """=count()/A2"""
 parse """=sum(employee)+2*3/4^5"""
 
 
@@ -19,16 +20,16 @@ let ast =
     | Ok (ast, _, _) -> ast
     | Error x -> failwith $"{x}"
 
-let ent =
-    { new BlockProtocolEntity with
-        member x.entityId = "test"
-        member x.accountId = None
-        member x.entityTypeId = None
+// let ent =
+//     { new BlockProtocolEntity with
+//         member x.entityId = "test"
+//         member x.accountId = None
+//         member x.entityTypeId = None
 
-        member x.Item
-            with get (_) = 4.2 }
+//         member x.Item
+//             with get (_) = 4.2 }
 
-let ents = Map.ofList [ (1, [| ent |]) ]
-evaluate Set.empty Map.empty ents ast ('a', 1)
+// let ents = Map.ofList [ (1, [| ent |]) ]
+// evaluate Set.empty Map.empty ents ast ('a', 1)
 
-parse "=sum(employee)"
+// parse "=sum(employee)"

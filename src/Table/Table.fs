@@ -55,30 +55,31 @@ type BlockProtocolSideEffects =
       blockEntityId: System.Guid
       updateEntities: BlockProtocolMessage<UpdateEntities<SaveState>> -> JS.Promise<UpdateEntitiesResponse<SaveState>>
       aggregateEntityTypes: BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
-      aggregateEntities: BlockProtocolMessage<AggregateEntities> -> JS.Promise<AggregateEntitiesResponse<unit>> }
+      aggregateEntities: BlockProtocolMessage<AggregateEntities>
+          -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }
 
 type State =
     { Cols: char list
       Rows: RowSelection list
       Cells: Map<Position, string>
       Active: Position option
-      entityTypes: EntityType<unit> []
-      loadedEntities: Map<int, Entity<unit> []> }
+      EntityTypes: EntityType<unit> []
+      LoadedEntities: Map<int, Entity<AnyBlockProperty> []> }
 
 type Event =
-    | UpdateValue of Position * string
+    | UpdateValue of Position * content: string
     | StartEdit of Position
     | StopEdit
     | SaveState
+    | DeserializeSaveState of SaveState
     | AddRow
     | RemoveRow of row: int
+    | ClearBoard
     | DispatchLoadEntityTypes
     | LoadEntityTypes of EntityType<unit> []
-    | DeserializeSaveState of SaveState
-    | ClearBoard
     | SetRowEntityType of row: int * entityTypeId: string
+    | SetRowEntities of row: int * entities: Entity<AnyBlockProperty> []
     | LoadRowEntities of row: int * entityTypeId: string
-    | SetRowEntities of row: int * Entity<unit> []
 
 type Movement =
     | MoveTo of Position
@@ -198,7 +199,7 @@ let update (sideEffect: BlockProtocolSideEffects) msg state =
             saveState.rows
             |> Array.filter (fun (n, etid) ->
                 etid.IsSome
-                && not (Map.containsKey n state.loadedEntities))
+                && not (Map.containsKey n state.LoadedEntities))
             |> Array.map (fun (n, etid) -> Cmd.ofMsg (LoadRowEntities(n, etid.Value)))
 
 
@@ -219,7 +220,7 @@ let update (sideEffect: BlockProtocolSideEffects) msg state =
 
         state, cmd
 
-    | LoadEntityTypes et -> { state with entityTypes = et }, Cmd.none
+    | LoadEntityTypes et -> { state with EntityTypes = et }, Cmd.none
 
     | SetRowEntityType (row, entityTypeId) ->
         let newRows =
@@ -259,12 +260,12 @@ let update (sideEffect: BlockProtocolSideEffects) msg state =
         console.info ("Loaded Entities", entities.Length)
 
         { state with
-            loadedEntities =
+            LoadedEntities =
                 Map.change
                     row
                     (function
                     | _ -> Some entities)
-                    state.loadedEntities },
+                    state.LoadedEntities },
         Cmd.none
 
     | ClearBoard -> { state with Cells = Map.empty }, Cmd.ofMsg SaveState
@@ -376,7 +377,7 @@ let renderCell trigger pos state =
             match value with
             | Some value ->
                 parse value
-                |> Result.map (fun (parsed, _, _) -> evaluate Set.empty state.Cells state.loadedEntities parsed pos)
+                |> Result.map (fun (parsed, _, _) -> evaluate Set.empty state.Cells state.LoadedEntities parsed pos)
                 |> Result.map string
             | _ -> Ok ""
 
@@ -442,7 +443,7 @@ let view state trigger =
             Html.span [
                 prop.className stylesheet.["header"]
                 prop.children [
-                    entityTypesDropdown trigger state.entityTypes n entityTypeId
+                    entityTypesDropdown trigger state.EntityTypes n entityTypeId
                     Html.text ($" {n}")
                 ]
             ]
@@ -496,8 +497,8 @@ let initial (saveState: SaveState option) =
         |> List.map (fun x -> RowSelection(x, None))
       Active = None
       Cells = Map.empty
-      entityTypes = [||]
-      loadedEntities = Map.empty },
+      EntityTypes = [||]
+      LoadedEntities = Map.empty },
 
     saveState
     |> Option.map (fun s ->
