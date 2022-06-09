@@ -9,6 +9,11 @@ open Fable.Core.JS
 open Fable.Core.JsInterop
 
 
+[<AllowNullLiteral>]
+type AnyBlockProperty =
+    [<Emit "$0[$1]{{=$2}}">]
+    abstract Item: key: string -> obj with get
+
 [<StringEnum>]
 type BlockProtocolSource =
     | Block
@@ -40,18 +45,16 @@ let createBPClientDetail requestId messageName service respondedToBy data =
 let BlockProtocolEventType =
     "blockprotocolmessage"
 
-let BlockProtocolInitMessage () : BlockProtocolMessage<unit> =
+let BlockProtocolInitMessage () : BlockProtocolMessage<obj> =
     { requestId = Guid.NewGuid().ToString()
       messageName = "init"
       respondedToBy = Some "initResponse"
       service = "core"
       source = BlockProtocolSource.Block
-      data = None
-      errors = None
+      data = Some(createObj [])
+      errors = None }
 
-    }
-
-type BlockProtocolCorePayload = { services: Map<string, obj> }
+type BlockProtocolCorePayload<'a> = { graph: AnyBlockProperty }
 
 type ResponseSettler =
     { expectedResponseName: string
@@ -82,42 +85,48 @@ let createBPEvent (detail: BlockProtocolMessage<'a>) =
             o.detail <- detail)
     )
 
-type DispatchResponse<'a, 'b> =
-    | WithResponse of Promise<'a>
-    | OneWay of BlockProtocolMessage<'b>
-
-let dispatchBPEvent<'a, 'b>
+let dispatchBPMessageWithResponse
     (requestSettlerMap: ResponseSettlersMap)
     (blockMessageRoot: HTMLElement)
     (detail: BlockProtocolMessage<'b>)
-    : DispatchResponse<'a, 'b> =
+    : Promise<'a> =
+    assert detail.respondedToBy.IsSome
     let bpEvent = createBPEvent detail
 
-    let _dispatched =
-        blockMessageRoot.dispatchEvent bpEvent
+    let mutable resolve = None
+    let mutable reject = None
 
-    if detail.respondedToBy.IsSome then
-        let mutable resolve = None
-        let mutable reject = None
+    let promise: Promise<'a> =
+        JS.Constructors.Promise.Create (fun res rej ->
+            resolve <- Some res
+            reject <- Some rej)
 
-        let promise: Promise<'a> =
-            JS.Constructors.Promise.Create (fun res rej ->
-                resolve <- Some res
-                reject <- Some rej)
+    requestSettlerMap.Set
+        (detail.requestId)
+        { expectedResponseName = detail.respondedToBy.Value
+          resolve = resolve.Value
+          reject = reject.Value }
 
-        requestSettlerMap.Set
-            (detail.requestId)
-            { expectedResponseName = detail.respondedToBy.Value
-              resolve = resolve.Value
-              reject = reject.Value }
+    blockMessageRoot.dispatchEvent bpEvent |> ignore
 
-        WithResponse promise
-    else
-        OneWay detail
+    promise
+
+let dispatchBPMessageOneWay
+    (requestSettlerMap: ResponseSettlersMap)
+    (blockMessageRoot: HTMLElement)
+    (detail: BlockProtocolMessage<'b>)
+    =
+    assert detail.respondedToBy.IsNone
+    let bpEvent = createBPEvent detail
+
+    blockMessageRoot.dispatchEvent bpEvent |> ignore
+
+    detail
+
 
 let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRoot: HTMLElement) =
     let handler (event: Event) =
-        if event :? CustomEvent then
+        if (event :?> CustomEvent).detail <> undefined then
             let bpMessage =
                 (event :?> CustomEvent).detail :?> BlockProtocolMessage<obj>
 
@@ -129,15 +138,17 @@ let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRo
                     let settler = settlerForMessage.Value
 
                     if settler.expectedResponseName = bpMessage.messageName then
-                        settler.resolve
-                            {| data = bpMessage.data
-                               errors = bpMessage.errors |}
+
+                        if bpMessage.errors <> JS.undefined then
+                            settler.reject bpMessage.errors
+                        else
+                            settler.resolve bpMessage.data
                     else
                         settler.reject ("error.")
 
                     requestSettlerMap.Remove bpMessage.requestId
                     |> ignore
 
-                console.log (bpMessage.messageName)
+                console.info ("Processed", bpMessage.messageName)
 
     blockMessageRoot.addEventListener (BlockProtocolEventType, handler)

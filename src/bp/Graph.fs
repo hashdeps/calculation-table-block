@@ -4,11 +4,6 @@ open BP.Core
 open Fable.Core
 open Fable.Core.JS
 
-[<AllowNullLiteral>]
-type AnyBlockProperty =
-    [<Emit "$0[$1]{{=$2}}">]
-    abstract Item: key: string -> obj with get
-
 type Entity<'props> =
     { accountId: string
       entityId: string
@@ -21,21 +16,21 @@ type EntityType<'schema> =
       schema: 'schema }
 
 // UpdateEntity
-type UpdateEntities<'props> =
+type UpdateEntity<'props> =
     { entityId: string
       properties: 'props }
 
 let updateEntity entityId properties =
     createBPClientDetail
         (Some(System.Guid.NewGuid().ToString()))
-        "updateEntities"
+        "updateEntity"
         "graph"
-        (Some "updateEntitiesResponse")
+        (Some "updateEntityResponse")
         (Some
             { entityId = entityId
               properties = properties })
 
-type UpdateEntitiesResponse<'props> =
+type UpdateEntityResponse<'props> =
     { entityId: string
       properties: 'props }
 
@@ -68,7 +63,7 @@ type AggregateEntityTypes =
 let aggregateAllEntityTypes () =
     createBPClientDetail
         (Some(System.Guid.NewGuid().ToString()))
-        "aggregateEntityTypesResponse"
+        "aggregateEntityTypes"
         "graph"
         (Some "aggregateEntityTypesResponse")
         (Some

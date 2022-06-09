@@ -27,7 +27,7 @@
     "test": "rimraf dist/mocha-tests && dotnet fable tests -e .fs.mjs -o dist/mocha-tests && mocha dist/mocha-tests"
   },
   "dependencies": {
-    "blockprotocol": "*",
+    "@blockprotocol/core": "0.0.2",
     "bulma": "^0.9.1",
     "date-fns": "^2.16.1",
     "react": "^17.0.2",
@@ -59,7 +59,7 @@
     "http-server": "^14.1.0",
     "mini-css-extract-plugin": "^1.3.4",
     "mocha": "^9.2.2",
-    "mock-block-dock": "0.0.8",
+    "mock-block-dock": "0.0.12-beta",
     "rimraf": "^3.0.2",
     "sass": "^1.32.4",
     "sass-loader": "^10.1.1",

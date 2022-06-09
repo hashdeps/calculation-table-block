@@ -11,6 +11,7 @@
         <Compile Include="Lang/Parsec.fs" />
         <Compile Include="Lang/Parser.fs" />
         <Compile Include="Lang/Evaluator.fs" />
+        <Compile Include="Table/Types.fs" />
         <Compile Include="Table/Table.fs" />
         <Compile Include="Block.fs" />
         <Compile Include="Dev.fs" />

@@ -151,7 +151,12 @@ module.exports = {
     rules: [
       {
         test: /\.(js|jsx)$/,
-        exclude: /node_modules/,
+        exclude: function (modulePath) {
+          return (
+            /node_modules/.test(modulePath) &&
+            !/node_modules\/mock-block-dock/.test(modulePath)
+          );
+        },
         use: {
           loader: "babel-loader",
           options: require("./babelrc.json"),

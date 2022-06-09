@@ -12,6 +12,8 @@ open Feliz.UseElmish
 open Lang.Parser
 open Lang.Evaluator
 
+open Table.Types
+
 let private stylesheet =
     Stylesheet.load "../styles/table.module.scss"
 
@@ -31,17 +33,6 @@ let merge (a: Map<'a, 'b>) (b: Map<'a, 'b>) (f: 'a -> 'b * 'b -> 'b) =
 // DOMAIN MODEL
 // ----------------------------------------------------------------------------
 
-type SerializedGrid = (Position * string) []
-
-
-type RowSelection = int * string option
-
-
-type SaveState =
-    { active: Position option
-      cells: SerializedGrid
-      rows: RowSelection [] }
-
 // type TableProps =
 //     { accountId: string
 //       entityId: string
@@ -49,15 +40,6 @@ type SaveState =
 //       aggregateEntities: BlockProtocolAggregateEntitiesFunction
 //       updateEntities: BlockProtocolUpdateEntitiesFunction
 //       saveState: SaveState option }
-
-type BlockProtocolSideEffects =
-    { blockAccountId: System.Guid
-      blockEntityId: System.Guid
-      updateEntities: BlockProtocolMessage<UpdateEntities<SaveState>> -> JS.Promise<UpdateEntitiesResponse<SaveState>>
-      aggregateEntityTypes: BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
-      aggregateEntities: BlockProtocolMessage<AggregateEntities>
-          -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }
-
 type State =
     { Cols: char list
       Rows: RowSelection list
@@ -182,7 +164,7 @@ let update (sideEffect: BlockProtocolSideEffects) msg state =
 
 
                 updateEntity sideEffect.blockEntityId serialized
-                |> sideEffect.updateEntities
+                |> sideEffect.updateEntity
                 |> Promise.map (fun _ -> console.info ("Saved state")))
             serialized
             (fun _ -> SaveState))
@@ -509,10 +491,10 @@ let initial (saveState: SaveState option) =
     |> Option.defaultValue (Cmd.ofMsg DispatchLoadEntityTypes)
 
 [<ReactComponent>]
-let Spreadsheet (props: BlockProtocolSideEffects) =
-    console.log (props)
+let Spreadsheet (bpState: BlockProtocolSideEffects) =
+    // console.log (bpState)
     // TODO: INIT PAYLOAD
     let state, dispatch =
-        React.useElmish (initial None, (update props), [||])
+        React.useElmish (initial None, (update bpState), [||])
 
     view state dispatch

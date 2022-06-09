@@ -993,6 +993,21 @@
     "@babel/helper-validator-identifier" "^7.16.7"
     to-fast-properties "^2.0.0"
 
+"@blockprotocol/core@0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.2.tgz#f9ef68143981e5aadfe14556f0afa8931c6a472d"
+  integrity sha512-vqM7aXwQqea6v2BYB510WoHYmQlJIKxgYcXePtKmQq7f2u2of1rlJ20syQ9jRO+Uo8Vx/a3Ark8f2Npae0rkAQ==
+  dependencies:
+    uuid "^8.3.2"
+
+"@blockprotocol/graph@0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.2.tgz#b1e852474ff07caaca03c46dfa57d95902ab930f"
+  integrity sha512-RBSTgwP2rMk1EC9p07P2xmm0GABp7VuQElx+6Nt4PWFDwHEtdPDnDCC2NPGEkNSuFGoVtw6bHCExMxQc0GOx4w==
+  dependencies:
+    "@blockprotocol/core" "0.0.2"
+    react "^17.0.2"
+
 "@discoveryjs/json-ext@^0.5.0":
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.7.tgz#1d572bfbbe14b7704e0ba0f39b74815b84870d70"
@@ -1554,10 +1569,10 @@ binary-extensions@^2.0.0:
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
 
-blockprotocol@*, blockprotocol@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.8.tgz#1fef8fc7bcdfc1fb132015a90fd1c962a5cce9c1"
-  integrity sha512-49rvjzpvlbtvZWsO+4c7UmKlDbMrIff6WCwtMk3DF3y/LCNliLREGxNmkOK9OT8NJ2OfubCbziGW9v6tzwCHaw==
+blockprotocol@0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.10.tgz#8ffb1c45ea789d6909012f101b9591b2e6213c7e"
+  integrity sha512-YyEEPQDyf+LGKSoiXjsOXySTvkT9TL/hyh1zKKua2HnsigdDSJ30fjHNWeiXAKO/6VEyjpHFXpEI7mmBjWDyig==
   dependencies:
     "@types/react" "^17.0.39"
 
@@ -3121,12 +3136,13 @@ mocha@^9.2.2:
     yargs-parser "20.2.4"
     yargs-unparser "2.0.0"
 
-mock-block-dock@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.8.tgz#fa96e216475633f208ea3a34a60755cdb1e72821"
-  integrity sha512-CBI83tj546pBgBU7X+ifkh751imPhq22eMNDipsnThGcsxU9MsNYxJwIRS33u8lJLD6ycB1apHSQgaLyJ61zHA==
+mock-block-dock@0.0.12-beta:
+  version "0.0.12-beta"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.12-beta.tgz#e8f27e797e71313c66550058c89b818f61e160fa"
+  integrity sha512-rTksVsEn4Dt6bFTF5OTMdGvLBQ7vs1/wjGjcRRgPzUqrYFzVCkpmHm/GyeCdvKJJaPGSuJ5OlA4dNVWafriu0A==
   dependencies:
-    blockprotocol "0.0.8"
+    "@blockprotocol/graph" "0.0.2"
+    blockprotocol "0.0.10"
     lodash "^4.17.21"
     uuid "^8.3.2"
 
