@@ -106,9 +106,10 @@ let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRo
                 let entity =
                     bpMessage.data.Value :?> Entity<'blockState>
 
-                if (JS.Constructors.Object.keys (entity.properties))
-                    .Count > 0 then
-                    setInitialBlockState (Some entity.properties)
+                if entity.properties.IsSome
+                   && (JS.Constructors.Object.keys (entity.properties))
+                       .Count > 0 then
+                    setInitialBlockState (entity.properties)
 
             console.info ("Processed", bpMessage)
 
@@ -120,7 +121,7 @@ type React with
         let blockProtocolState, setblockProtocolState =
             React.useState None
 
-        let initialBlockState, setInitialBlockState =
+        let (initialBlockState: 'a option), setInitialBlockState =
             React.useState None
 
         let settlerMap, _ =
@@ -151,9 +152,10 @@ type React with
 
                         setblockProtocolState (Some sideEffects)
 
-                        if (JS.Constructors.Object.keys (entity.properties))
-                            .Count > 0 then
-                            setInitialBlockState (Some entity.properties))
+                        if entity.properties.IsSome
+                           && (JS.Constructors.Object.keys (entity.properties))
+                               .Count > 0 then
+                            setInitialBlockState (entity.properties))
                     |> ignore),
             [| setblockProtocolState :> obj
                setInitialBlockState

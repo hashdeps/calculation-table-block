@@ -19,14 +19,14 @@ let resultToOption (source: Result<'T, 'Error>) =
 // Aggregators
 // ----------------------------------------------------------------------------
 
-let env: Map<string, (float [] -> float)> =
+let env: Map<string, (float seq -> float)> =
     Map.ofList [
-        ("count", Array.length >> float)
-        ("sum", Array.sum)
+        ("count", Seq.length >> float)
+        ("sum", Seq.sum)
         ("avg",
          (fun x ->
-             let length = Array.length x
-             (Array.sum x) / (float length)))
+             let length = Seq.length x
+             (Seq.sum x) / (float length)))
     ]
 
 
@@ -67,16 +67,34 @@ let rec evaluate
             |> Option.defaultValue [||]
 
         let json =
-            ents
-            |> Array.map (fun x -> x.properties.Item(propertyName))
-            |> Array.map (fun x ->
-                if x :? float then
-                    Some(x :?> float)
-                else
-                    // This allows counting. Not the best way to do so, though!
-                    Some(0.0))
+            Array.foldBack
+                (fun (entity: Entity<AnyBlockProperty>) acc ->
+                    match entity with
+                    | e when e.properties.IsSome ->
+                        // This bit is very hacky. We've already established
+                        // that the entity contains "any" data
+                        // this nextp art checks if the specified property names
+                        // exists, and whether or not it is a float.
+                        let property =
+                            e.properties.Value.Item(propertyName)
 
-            |> Array.choose id
+                        let x =
+                            if property :? float then
+                                // If it is a float, this means that we can use it
+                                // for aggregation functions.
+                                property :?> float
+                            else
+                                // Otherwise we allow 'counting'.
+                                // Not the best way to do so, though!
+                                0.0
+
+                        x :: acc
+                    | _ -> acc
+
+                    )
+                ents
+                []
+
 
         Map.tryFind func env
         |> Option.map (fun f -> f json)

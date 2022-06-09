@@ -6,14 +6,12 @@ open Fable.Core.JS
 
 
 type Entity<'props> =
-    { accountId: string
-      entityId: string
-      entityTypeId: string
-      properties: 'props }
+    { entityId: string
+      entityTypeId: string option
+      properties: 'props option }
 
 type EntityType<'schema> =
-    { accountId: string
-      entityTypeId: string
+    { entityTypeId: string
       schema: 'schema }
 
 let blockEntity = "blockEntity"
