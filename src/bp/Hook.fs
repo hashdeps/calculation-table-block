@@ -136,13 +136,12 @@ type React with
                     let request = BlockProtocolInitMessage()
 
 
-                    let promise: JS.Promise<BlockProtocolCorePayload<'a>> =
+                    let promise: JS.Promise<BlockProtocolCorePayload<Entity<'a>>> =
                         dispatchBPMessageWithResponse settlerMap container (request)
 
                     promise
                     |> Promise.map (fun r ->
-                        let entity =
-                            r.graph.Item blockEntity :?> Entity<'a>
+                        let entity = r.graph.blockEntity
 
                         let sideEffects: BlockProtocolState =
                             { blockEntityId = entity.entityId

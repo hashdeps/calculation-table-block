@@ -9,11 +9,6 @@ open Fable.Core.JS
 open Fable.Core.JsInterop
 
 
-[<AllowNullLiteral>]
-type AnyBlockProperty =
-    [<Emit "$0[$1]{{=$2}}">]
-    abstract Item: key: string -> obj with get
-
 [<StringEnum>]
 type BlockProtocolSource =
     | Block
@@ -45,7 +40,7 @@ let createBPClientDetail requestId messageName service respondedToBy data =
 let BlockProtocolEventName =
     "blockprotocolmessage"
 
-let BlockProtocolInitMessage () : BlockProtocolMessage<obj> =
+let BlockProtocolInitMessage () =
     { requestId = Guid.NewGuid().ToString()
       messageName = "init"
       respondedToBy = Some "initResponse"
@@ -54,4 +49,5 @@ let BlockProtocolInitMessage () : BlockProtocolMessage<obj> =
       data = Some(createObj [])
       errors = None }
 
-type BlockProtocolCorePayload<'a> = { graph: AnyBlockProperty }
+type BlockEntity<'a> = { blockEntity: 'a }
+type BlockProtocolCorePayload<'a> = { graph: BlockEntity<'a> }

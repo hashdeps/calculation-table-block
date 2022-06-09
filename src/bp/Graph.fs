@@ -4,6 +4,10 @@ open BP.Core
 open Fable.Core
 open Fable.Core.JS
 
+[<AllowNullLiteral>]
+type AnyBlockProperty =
+    [<Emit "$0[$1]{{=$2}}">]
+    abstract Item: key: string -> obj with get
 
 type Entity<'props> =
     { entityId: string
