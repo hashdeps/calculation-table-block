@@ -16,12 +16,3 @@ type SaveState =
     { active: Position option
       cells: SerializedGrid
       rows: RowSelection [] }
-
-
-type BlockProtocolSideEffects =
-    { blockAccountId: string
-      blockEntityId: string
-      updateEntity: BlockProtocolMessage<UpdateEntity<SaveState>> -> JS.Promise<UpdateEntityResponse<SaveState>>
-      aggregateEntityTypes: BlockProtocolMessage<AggregateEntityTypes> -> JS.Promise<AggregateEntityTypesResponse<unit>>
-      aggregateEntities: BlockProtocolMessage<AggregateEntities>
-          -> JS.Promise<AggregateEntitiesResponse<AnyBlockProperty>> }

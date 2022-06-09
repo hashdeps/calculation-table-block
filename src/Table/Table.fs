@@ -85,7 +85,7 @@ let KeyDirection: Map<string, Direction> =
 // EVENT HANDLING
 // ----------------------------------------------------------------------------
 
-let update (sideEffect: BlockProtocolSideEffects) msg state =
+let update (sideEffect: BlockProtocolState) msg state =
     match msg with
     | StartEdit (pos) -> { state with Active = Some pos }, Cmd.none
 
@@ -231,7 +231,7 @@ let update (sideEffect: BlockProtocolSideEffects) msg state =
         let loadEntities =
             Cmd.OfPromise.perform
                 (fun entityTypdId ->
-                    aggregateAllEntitiesByType entityTypdId sideEffect.blockAccountId
+                    aggregateAllEntitiesByType entityTypdId
                     |> sideEffect.aggregateEntities)
                 entityTypeId
                 (fun x -> SetRowEntities(row, x.results))
@@ -491,10 +491,10 @@ let initial (saveState: SaveState option) =
     |> Option.defaultValue (Cmd.ofMsg DispatchLoadEntityTypes)
 
 [<ReactComponent>]
-let Spreadsheet (bpState: BlockProtocolSideEffects) =
-    // console.log (bpState)
-    // TODO: INIT PAYLOAD
+let Spreadsheet (bpState: BlockProtocolState) (initialBlockState: SaveState option) =
+    console.log (initialBlockState)
+
     let state, dispatch =
-        React.useElmish (initial None, (update bpState), [||])
+        React.useElmish (initial initialBlockState, (update bpState), [| bpState :> obj; initialBlockState |])
 
     view state dispatch
