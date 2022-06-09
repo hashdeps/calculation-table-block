@@ -44,7 +44,7 @@ type MultiFilters =
 
 type MultiSort = { field: string; desc: bool option }
 
-type AggregateEntitiesResult =
+type AggregateResult =
     { entityTypeId: string option
       pageNumber: int
       itemsPerPage: int
@@ -54,20 +54,22 @@ type AggregateEntitiesResult =
       multiFilter: MultiFilter option }
 
 // aggregateEntityTypes
-type AggregateEntityTypes = { operation: AggregateEntitiesResult }
+type AggregateEntityTypes = { operation: AggregateResult }
 
 type AggregateEntityTypesResponse<'props> =
     { results: EntityType<'props> []
-      operation: AggregateEntitiesResult }
+      operation: AggregateResult }
 
 // aggregateEntities
 
-type AggregateEntities = { operation: AggregateEntitiesResult }
+type AggregateEntities = { operation: AggregateResult }
 
 type AggregateEntitiesResponse<'props> =
     { results: Entity<'props> []
-      operation: AggregateEntitiesResult }
+      operation: AggregateResult }
 
+
+// Block Protocol functionality we're exposing
 
 type BlockProtocolState =
     { blockEntityId: string

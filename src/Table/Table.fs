@@ -492,8 +492,6 @@ let initial (saveState: SaveState option) =
 
 [<ReactComponent>]
 let Spreadsheet (bpState: BlockProtocolState) (initialBlockState: SaveState option) =
-    console.log (initialBlockState)
-
     let state, dispatch =
         React.useElmish (initial initialBlockState, (update bpState), [| bpState :> obj; initialBlockState |])
 

@@ -30,7 +30,7 @@ type ResponseSettlersMap() =
 
 let createBPEvent (detail: BlockProtocolMessage<'a>) =
     CustomEvent.Create(
-        BlockProtocolEventType,
+        BlockProtocolEventName,
         JsInterop.jsOptions<CustomEventInit> (fun o ->
             o.bubbles <- true
             o.composed <- true
@@ -106,11 +106,13 @@ let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRo
                 let entity =
                     bpMessage.data.Value :?> Entity<'blockState>
 
-                setInitialBlockState entity.properties
+                if (JS.Constructors.Object.keys (entity.properties))
+                    .Count > 0 then
+                    setInitialBlockState (Some entity.properties)
 
             console.info ("Processed", bpMessage)
 
-    blockMessageRoot.addEventListener (BlockProtocolEventType, handler)
+    blockMessageRoot.addEventListener (BlockProtocolEventName, handler)
 
 type React with
     [<Hook>]
@@ -148,7 +150,10 @@ type React with
                               aggregateEntities = dispatchBPMessageWithResponse settlerMap container }
 
                         setblockProtocolState (Some sideEffects)
-                        setInitialBlockState (Some entity.properties))
+
+                        if (JS.Constructors.Object.keys (entity.properties))
+                            .Count > 0 then
+                            setInitialBlockState (Some entity.properties))
                     |> ignore),
             [| setblockProtocolState :> obj
                setInitialBlockState

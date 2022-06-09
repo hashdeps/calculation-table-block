@@ -42,7 +42,7 @@ let createBPClientDetail requestId messageName service respondedToBy data =
       data = data
       errors = None }
 
-let BlockProtocolEventType =
+let BlockProtocolEventName =
     "blockprotocolmessage"
 
 let BlockProtocolInitMessage () : BlockProtocolMessage<obj> =
