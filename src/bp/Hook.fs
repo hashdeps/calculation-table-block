@@ -38,7 +38,7 @@ let createBPEvent (detail: BlockProtocolMessage<'a>) =
     )
 
 let dispatchBPMessageWithResponse
-    (requestSettlerMap: ResponseSettlersMap)
+    (responseSettlerMap: ResponseSettlersMap)
     (blockMessageRoot: HTMLElement)
     (detail: BlockProtocolMessage<'b>)
     : JS.Promise<'a> =
@@ -53,7 +53,7 @@ let dispatchBPMessageWithResponse
             resolve <- Some res
             reject <- Some rej)
 
-    requestSettlerMap.Set
+    responseSettlerMap.Set
         (detail.requestId)
         { expectedResponseName = detail.respondedToBy.Value
           resolve = resolve.Value
@@ -64,7 +64,7 @@ let dispatchBPMessageWithResponse
     promise
 
 let dispatchBPMessageOneWay
-    (requestSettlerMap: ResponseSettlersMap)
+    (responseSettlerMap: ResponseSettlersMap)
     (blockMessageRoot: HTMLElement)
     (detail: BlockProtocolMessage<'b>)
     =
@@ -76,7 +76,7 @@ let dispatchBPMessageOneWay
     detail
 
 
-let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRoot: HTMLElement) setInitialBlockState =
+let listenForEAResponse (responseSettlerMap: ResponseSettlersMap) (blockMessageRoot: HTMLElement) setInitialBlockState =
     let handler (event: Event) =
         if (event :?> CustomEvent).detail <> JS.undefined then
             let bpMessage =
@@ -84,7 +84,7 @@ let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRo
 
             if bpMessage.source = Embedder then
                 let settlerForMessage =
-                    requestSettlerMap.Get bpMessage.requestId
+                    responseSettlerMap.Get bpMessage.requestId
 
                 if settlerForMessage.IsSome then
                     let settler = settlerForMessage.Value
@@ -98,7 +98,7 @@ let listenForEAResponse (requestSettlerMap: ResponseSettlersMap) (blockMessageRo
                     else
                         settler.reject ("error.")
 
-                    requestSettlerMap.Remove bpMessage.requestId
+                    responseSettlerMap.Remove bpMessage.requestId
                     |> ignore
 
             if bpMessage.messageName = blockEntity
