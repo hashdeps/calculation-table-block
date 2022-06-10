@@ -125,7 +125,7 @@ let tableParser termParser operators =
 // Concrete parsers
 // ----------------------------------------------------------------------------
 
-let jsonPathArg =
+let propertyPath =
     let escape =
         anyOf "\"\\/bfnrt"
         |>> function
@@ -174,7 +174,7 @@ let paren =
     .>> pchar ')'
 
 let functionCall =
-    functionIdentifier .>>. jsonPathArg
+    functionIdentifier .>>. propertyPath
     |>> FunctionCall
 
 let termAux =
