@@ -1,10 +1,19 @@
 {
-  "name": "@hashdeps/calculation-table",
-  "version": "0.1.0",
+  "name": "calculation-block",
+  "version": "0.2.1",
   "description": "Spreadsheet-like table for doing computation on entities",
+  "license": "MIT",
+  "main": "dist/out/main.js",
+  "keywords": [
+    "blockprotocol"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashdeps/calculation-table-block.git#main"
+    "url": "https://github.com/hashdeps/calculation-table-block.git"
+  },
+  "author": {
+    "name": "HASH",
+    "url": "https://hash.ai"
   },
   "blockprotocol": {
     "displayName": "Calculation table",
@@ -13,12 +22,15 @@
     "examples": [],
     "protocol": "0.1"
   },
-  "private": true,
+  "files": [
+    "dist/out/*.js"
+  ],
   "scripts": {
     "prestart": "dotnet tool restore",
     "dev": "dotnet fable watch ./src -e .fs.js -o dist/build -s --run webpack-dev-server",
     "prebuild": "dotnet tool restore",
     "build": "dotnet fable ./src -e .fs.js -o dist/build && webpack",
+    "prepublish": "PUBLISH=true dotnet fable ./src -e .fs.js -o dist/build && webpack",
     "http-server": "http-server dist/out -p 7777 -c-1 -g --cors",
     "serve": "concurrently -n build,serve 'dotnet fable watch ./src -e .fs.js -o dist/build --runWatch webpack' 'npm:http-server'",
     "test:live": "dotnet fable watch tests -e .fs.js -o dist/tests --run webpack-dev-server --config ./webpack.tests.js",
