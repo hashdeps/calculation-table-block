@@ -1,14 +1,13 @@
 module Lang.Evaluator
 
 open BP.Core
+open BP.Graph
 open Lang.Parser
-// open JsonPath
-open Fable.SimpleJson
 
 let (>>=) m f = Option.bind f m
-let (<*>) m f = Option.map f m
+let (<!>) m f = Option.map f m
 
-let toOption (source: Result<'T, 'Error>) =
+let resultToOption (source: Result<'T, 'Error>) =
     match source with
     | Ok x -> Some x
     | Error _ -> None
@@ -18,14 +17,14 @@ let toOption (source: Result<'T, 'Error>) =
 // Aggregators
 // ----------------------------------------------------------------------------
 
-let env: Map<string, (float [] -> float)> =
+let env: Map<string, (float seq -> float)> =
     Map.ofList [
-        ("count", Array.length >> float)
-        ("sum", Array.sum)
+        ("count", Seq.length >> float)
+        ("sum", Seq.sum)
         ("avg",
          (fun x ->
-             let length = Array.length x
-             (Array.sum x) / (float length)))
+             let length = Seq.length x
+             (Seq.sum x) / (float length)))
     ]
 
 
@@ -49,48 +48,71 @@ let binaryFuncs op (l: float) (r: float) =
 // | _ -> failwith "Unimplemented"
 
 
-let rec evaluate visited (cells: Map<Position, string>) (ents: Map<int, BlockProtocolEntity []>) expr calculateAtPos =
+let rec evaluate
+    visited
+    (cells: Map<Position, string>)
+    (ents: Map<int, Entity<AnyBlockProperty> []>)
+    expr
+    calculateAtPos
+    =
     match expr with
     | Number num -> Some num
 
-    | FunctionCall (func, jsonPath) ->
+    | FunctionCall (func, propertyName) ->
 
         let ents =
             Map.tryFind (snd calculateAtPos) ents
             |> Option.defaultValue [||]
 
         let json =
-            ents
-            |> Array.map (fun x -> x.Item(jsonPath))
-            |> Array.map (fun x ->
-                if x :? float then
-                    Some(x :?> float)
-                else
-                    // This allows counting. Not the best way to do so, though!
-                    Some(0.0))
+            Array.foldBack
+                (fun (entity: Entity<AnyBlockProperty>) acc ->
+                    match entity with
+                    | e when e.properties.IsSome ->
+                        // This bit is very hacky. We've already established
+                        // that the entity contains "any" data
+                        // this nextp art checks if the specified property names
+                        // exists, and whether or not it is a float.
+                        let property =
+                            e.properties.Value.Item(propertyName)
 
-            |> Array.choose id
+                        let x =
+                            if property :? float then
+                                // If it is a float, this means that we can use it
+                                // for aggregation functions.
+                                property :?> float
+                            else
+                                // Otherwise we allow 'counting'.
+                                // Not the best way to do so, though!
+                                0.0
+
+                        x :: acc
+                    | _ -> acc
+
+                    )
+                ents
+                []
+
 
         Map.tryFind func env
         |> Option.map (fun f -> f json)
 
     | Unary (e, op) ->
         evaluate visited cells ents e calculateAtPos
-        <*> (fun e -> unaryFuncs op e)
+        <!> (fun e -> unaryFuncs op e)
 
     | Binary (l, op, r) ->
         evaluate visited cells ents l calculateAtPos
         >>= (fun l ->
             evaluate visited cells ents r calculateAtPos
-            <*> (fun r -> binaryFuncs op l r))
+            <!> (fun r -> binaryFuncs op l r))
 
     | Reference pos when Set.contains pos visited -> None
 
     | Reference pos ->
         cells.TryFind pos
-        |> Option.bind (fun value ->
+        >>= (fun value ->
             let parsed = parse value
 
-            parsed
-            |> toOption
-            |> Option.bind (fun (parsed, _, _) -> evaluate (Set.add pos visited) cells ents parsed pos))
+            resultToOption parsed
+            >>= (fun (parsed, _, _) -> evaluate (Set.add pos visited) cells ents parsed pos))

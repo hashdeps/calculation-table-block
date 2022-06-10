@@ -21,7 +21,7 @@ type Expr =
     | Number of float
     | Unary of Expr * Operator
     | Binary of Expr * Operator * Expr
-    | FunctionCall of func: string * jsonPath: string
+    | FunctionCall of func: string * propertyName: string
 
 let operatorMapping =
     function
@@ -125,7 +125,7 @@ let tableParser termParser operators =
 // Concrete parsers
 // ----------------------------------------------------------------------------
 
-let jsonPathArg =
+let propertyPath =
     let escape =
         anyOf "\"\\/bfnrt"
         |>> function
@@ -159,7 +159,7 @@ let jsonPathArg =
 
 
 // Precedence table of operators
-let operators =
+let opsTable =
     [ (Prefix, [ Minus ])
       // (Postfix,     [Factorial])
       (BinaryRight, [ Exponent ])
@@ -174,15 +174,15 @@ let paren =
     .>> pchar ')'
 
 let functionCall =
-    functionIdentifier .>>. jsonPathArg
+    functionIdentifier .>>. propertyPath
     |>> FunctionCall
 
 let termAux =
     reference <|> functionCall <|> number <|> paren
 
-let ops = tableParser termAux operators
+let operators = tableParser termAux opsTable
 
-termSetter.Value <- ops
+termSetter.Value <- operators
 
 let formula = wsIgnore (pchar '=') >>. term
 let equation = wsIgnore (formula <|> number)

@@ -11,15 +11,6 @@ let MockBlockDock =
 
 let node = document.getElementById "app"
 
-let App () =
-    MockBlockDock [
-        (Block
-            { accountId = "abc"
-              entityId = "entityId-test"
-              updateEntities = null
-              aggregateEntityTypes = null
-              aggregateEntities = null
-              saveState = None })
-    ]
+let App () = MockBlockDock [ (Block()) ]
 
 ReactDOM.render (App(), node)
