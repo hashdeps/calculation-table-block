@@ -33,13 +33,6 @@ let merge (a: Map<'a, 'b>) (b: Map<'a, 'b>) (f: 'a -> 'b * 'b -> 'b) =
 // DOMAIN MODEL
 // ----------------------------------------------------------------------------
 
-// type TableProps =
-//     { accountId: string
-//       entityId: string
-//       aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction
-//       aggregateEntities: BlockProtocolAggregateEntitiesFunction
-//       updateEntities: BlockProtocolUpdateEntitiesFunction
-//       saveState: SaveState option }
 type State =
     { Cols: char list
       Rows: RowSelection list
@@ -160,12 +153,9 @@ let update (sideEffect: BlockProtocolState) msg state =
         state,
         (Cmd.OfPromise.attempt
             (fun serialized ->
-                console.log (serialized)
-
-
                 updateEntity sideEffect.blockEntityId serialized
                 |> sideEffect.updateEntity
-                |> Promise.map (fun _ -> console.info ("Saved state")))
+                |> Promise.map ignore)
             serialized
             (fun _ -> SaveState))
 
@@ -239,8 +229,6 @@ let update (sideEffect: BlockProtocolState) msg state =
         state, loadEntities
 
     | SetRowEntities (row, entities) ->
-        console.info ("Loaded Entities", entities.Length)
-
         { state with
             LoadedEntities =
                 Map.change

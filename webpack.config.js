@@ -21,7 +21,7 @@ var isProduction = !process.argv.find(
   (v) => v.indexOf("webpack-dev-server") !== -1
 );
 
-const isDevelopment = !isProduction && process.env.NODE_ENV !== "production";
+const buildingForPublishing = process.env.PUBLISH !== "true";
 
 var CONFIG = {
   // The tags to include the generated JS and CSS will be automatically injected in the HTML template
@@ -75,7 +75,11 @@ module.exports = {
   output: {
     libraryTarget: isProduction ? "commonjs" : undefined,
     path: resolve(CONFIG.outputDir),
-    filename: isProduction ? "main.[contenthash].js" : "[name].js",
+    filename: isProduction
+      ? buildingForPublishing
+        ? "main.js"
+        : "main.[contenthash].js"
+      : "[name].js",
     clean: true,
   },
   externals: isProduction

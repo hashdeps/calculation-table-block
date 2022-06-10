@@ -4,7 +4,7 @@ open BP.Core
 open BP.Graph
 open Lang.Parser
 // open JsonPath
-open Fable.SimpleJson
+// open Fable.SimpleJson
 
 let (>>=) m f = Option.bind f m
 let (<!>) m f = Option.map f m

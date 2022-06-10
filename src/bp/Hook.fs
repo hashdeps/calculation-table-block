@@ -111,7 +111,7 @@ let listenForEAResponse (responseSettlerMap: ResponseSettlersMap) (blockMessageR
                        .Count > 0 then
                     setInitialBlockState (entity.properties)
 
-            console.info ("Processed", bpMessage)
+            console.info ("Processed BP message", bpMessage)
 
     blockMessageRoot.addEventListener (BlockProtocolEventName, handler)
 
