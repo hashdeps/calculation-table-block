@@ -1,6 +1,6 @@
 {
   "name": "calculation-block",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Spreadsheet-like table for doing computation on entities",
   "license": "MIT",
   "main": "dist/out/main.js",
