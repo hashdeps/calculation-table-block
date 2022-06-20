@@ -17,8 +17,8 @@ let Block () =
 
     Html.div [
         prop.ref ref
-        if blockProtocolState.IsSome then
-            prop.children [
+        prop.children [
+            if blockProtocolState.IsSome then
                 Spreadsheet blockProtocolState.Value initialBlockState
-            ]
+        ]
     ]
